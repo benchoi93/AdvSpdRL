@@ -1,2 +1,5 @@
 wheel
 gym
+stable-baselines3
+tensorboard
+tensorboardX

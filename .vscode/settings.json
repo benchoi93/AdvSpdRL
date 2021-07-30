@@ -1,0 +1,5 @@
+{
+    "gitlens.gitCommands.search.showResultsInSideBar": false,
+    "python.pythonPath": ".venv/Script/python.exe",
+    "jupyter.sendSelectionToInteractiveWindow": true
+}
