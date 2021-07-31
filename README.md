@@ -4,9 +4,9 @@
 Advisory Speed Model based on Reinforcement Learning
 
 ## Requirements
-gym
-stable-baselines3
-torch
+-gym
+-stable-baselines3
+-torch
 
 
 ## Usage
