@@ -138,4 +138,3 @@ class Label(pyglet.text.Label):
     def position(self, xy_tuple):
         self.x = xy_tuple[0]
         self.y = xy_tuple[1]
-# {"mode":"full","isActive":false}

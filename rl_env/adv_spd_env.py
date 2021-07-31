@@ -8,21 +8,21 @@ class Vehicle(object):
         max_speed = 50 / 3.6
         self.position = 0
         self.velocity = np.random.rand() * max_speed
+        # self.velocity = 40/3.6
         self.acceleration = 0
         self.jerk = 0
+        self.action_limit_penalty = 1
 
 
 class TrafficSignal(object):
-    def __init__(self):
-        min_location = 250
-        max_location = 350
+    def __init__(self, min_location=250, max_location=350):
 
-        self.phase_length = {True: 30, False: 90}
-        self.cycle_length = 120
+        self.phase_length = {True: 10, False: 110}
+        self.cycle_length = sum(self.phase_length.values())
 
         self.location = min_location + np.random.rand() * (max_location - min_location)
         self.timetable = np.zeros(shape=[self.cycle_length])
-        offset = np.random.randint(0, 10)
+        offset = np.random.randint(0, self.cycle_length)
 
         running_offset = offset
         cursignal = True
@@ -48,15 +48,24 @@ class TrafficSignal(object):
 
         return greentime_start, greentime_end
 
+    def is_green(self, timestep):
+        return timestep % self.cycle_length >= self.get_greentime(timestep % self.cycle_length)[0]
+
 
 class AdvSpdEnv(gym.Env):
-    def __init__(self):
+    def __init__(self, dt=0.1, track_length=500.0, acc_max=5, acc_min=-5, speed_max=50.0/3.6, dec_th=-3, stop_th=2):
 
         # num_observations = 2
-        self.dt = 0.1
-        self.track_length = 500.0
+        self.dt = dt
+        self.track_length = track_length
+        self.acc_min = acc_min
+        self.acc_max = acc_max
+        self.speed_max = speed_max
+        self.dec_th = dec_th
+        self.stop_th = stop_th
 
-        self.action_space = spaces.Box(low=-5.0, high=5.0, shape=[1, ])
+        self.action_space = spaces.Box(low=acc_min, high=acc_max, shape=[1, ])
+        self.reset()
 
         min_states = np.array([0.0,  # position
                                0.0,  # velocity
@@ -65,10 +74,10 @@ class AdvSpdEnv(gym.Env):
                                0.0  # green time end
                                ])
         max_states = np.array([self.track_length,  # position
-                               50.0/3.6,  # velocity
+                               speed_max,  # velocity
                                self.track_length,   # signal location
-                               40.0,   # green time start
-                               40.0   # green time end
+                               self.signal.timetable.shape[0],   # green time start
+                               self.signal.timetable.shape[0]   # green time end
                                ])
 
         self.observation_space = spaces.Box(low=min_states,
@@ -76,11 +85,10 @@ class AdvSpdEnv(gym.Env):
 
         # self.scenario = scenario
         self.viewer = None
-        self.reset()
         pass
 
     def get_random_action(self):
-        return -5.0 + (np.random.rand()) * 10
+        return self.acc_min + (np.random.rand()) * (self.acc_max - self.acc_min)
 
     def step(self, action):
         """
@@ -120,7 +128,7 @@ class AdvSpdEnv(gym.Env):
 
         if prev_ob[0] <= self.signal.location:
             if ob[0] > self.signal.location:
-                if not self.signal.timetable[int(self.timestep * self.dt) % self.signal.timetable.shape[0]]:
+                if not self.signal.is_green(int(self.timestep * self.dt)):
                     self.violation = True
 
         reward = self._get_reward()
@@ -133,8 +141,8 @@ class AdvSpdEnv(gym.Env):
         self.state = [self.vehicle.position,
                       self.vehicle.velocity,
                       self.signal.location,
-                      self.signal.get_greentime(self.timestep)[0],
-                      self.signal.get_greentime(self.timestep)[1]]
+                      self.signal.get_greentime(int(self.timestep*self.dt))[0],
+                      self.signal.get_greentime(int(self.timestep*self.dt))[1]]
         return self.state
 
     def reset(self):
@@ -148,8 +156,8 @@ class AdvSpdEnv(gym.Env):
         self.state = [self.vehicle.position,
                       self.vehicle.velocity,
                       self.signal.location,
-                      self.signal.get_greentime(self.timestep)[0],
-                      self.signal.get_greentime(self.timestep)[1]]
+                      self.signal.get_greentime(int(self.timestep*self.dt))[0],
+                      self.signal.get_greentime(int(self.timestep*self.dt))[1]]
 
         self.reward = 0
         self.done = False
@@ -157,7 +165,7 @@ class AdvSpdEnv(gym.Env):
 
         return self.state
 
-    def render(self, mode='human', close=False):
+    def render(self, mode='human', info_show=False, close=False):
         screen_width = 1200
         screen_height = 450
 
@@ -228,84 +236,88 @@ class AdvSpdEnv(gym.Env):
             info.position = (clearance_x - 40, 225 + clearance_y)
             self.viewer.components['info'] = info
 
-        if self.signal.timetable[self.timestep % self.signal.timetable.shape[0]]:
+        if self.signal.is_green(int(self.timestep * self.dt)):
             self.viewer.components['signal'].color = (0, 255, 0)
         else:
             self.viewer.components['signal'].color = (255, 0, 0)
-        self.viewer.components['signal'].position = (zero_x + scale_x * (self.signal.location - self.vehicle.position), 100 + clearance_y)
+        self.viewer.components['signal'].position = (zero_x + scale_x * (self.signal.location - self.vehicle.position+1), 100 + clearance_y)
 
-        # info figures
+        # update history
         self.viewer.history['velocity'].append(self.vehicle.velocity * 3.6)
         # self.viewer.history['speed_limit'].append(self.current_speed_limit *3.6)
         self.viewer.history['position'].append(self.vehicle.position)
         self.viewer.history['acceleration'].append(self.vehicle.acceleration)
         self.viewer.history['reward'].append(self._get_reward())
-        # self.viewer.components['info'].visible = False
 
-        self.viewer.components['info'].visible = True
-        self.fig.clf()
-        ax = self.fig.add_subplot(141)
-        ax.plot(self.viewer.history['position'],
-                self.viewer.history['velocity'],
-                lw=2,
-                color='k')
-        # ax.plot(self.viewer.history['position'],
-        #         self.viewer.history['speed_limit'],
-        #         lw=1.5,
-        #         ls='--',
-        #         color='r')
-        ax.set_xlabel('Position in m')
-        ax.set_ylabel('Velocity in km/h')
-        ax.set_xlim(
-            (0.0, max(500, self.vehicle.position + (500 - self.vehicle.position) % 500)))
-        ax.set_ylim((0.0, 130))
+        if info_show:
+            # info figures
 
-        ax2 = self.fig.add_subplot(142)
-        ax2.plot(self.viewer.history['position'],
-                 self.viewer.history['acceleration'],
-                 lw=2,
-                 color='k')
-        ax2.set_xlabel('Position in m')
-        ax2.set_ylabel('Acceleration in m/s²')
-        ax2.set_xlim(
-            (0.0, max(500, self.vehicle.position + (500 - self.vehicle.position) % 500)))
-        ax2.set_ylim((-5.0, 5.0))
+            # self.viewer.components['info'].visible = False
 
-        ax3 = self.fig.add_subplot(143)
-        ax3.plot([x*self.dt for x in range(len(self.viewer.history['position']))],
-                 self.viewer.history['position'],
-                 lw=2,
-                 color='k')
-        # if draw_signal_location:
-        xlim_max = 1000
-        for i in range(xlim_max):
-            if self.signal.timetable[i % self.signal.cycle_length] == 1:
-                signal_color = 'r'
-            else:
-                signal_color = 'g'
+            self.viewer.components['info'].visible = True
+            self.fig.clf()
+            ax = self.fig.add_subplot(141)
+            ax.plot(self.viewer.history['position'],
+                    self.viewer.history['velocity'],
+                    lw=2,
+                    color='k')
+            # ax.plot(self.viewer.history['position'],
+            #         self.viewer.history['speed_limit'],
+            #         lw=1.5,
+            #         ls='--',
+            #         color='r')
+            ax.set_xlabel('Position in m')
+            ax.set_ylabel('Velocity in km/h')
+            ax.set_xlim(
+                (0.0, max(500, self.vehicle.position + (500 - self.vehicle.position) % 500)))
+            ax.set_ylim((0.0, 130))
 
-            ax3.plot([x*self.dt for x in range(int((i)/self.dt), int((i + 1)//self.dt)+1)],
-                     [self.signal.location] * len(range(int(i/self.dt), int((i + 1)//self.dt)+1)),
-                     color=signal_color
-                     )
-        green_search_xlim = int(max(100, len(self.viewer.history['position'])) * self.dt) + 1
+            ax2 = self.fig.add_subplot(142)
+            ax2.plot(self.viewer.history['position'],
+                     self.viewer.history['acceleration'],
+                     lw=2,
+                     color='k')
+            ax2.set_xlabel('Position in m')
+            ax2.set_ylabel('Acceleration in m/s²')
+            ax2.set_xlim(
+                (0.0, max(500, self.vehicle.position + (500 - self.vehicle.position) % 500)))
+            ax2.set_ylim((self.acc_min, self.acc_max))
 
-        ax3.set_xlabel('Time in s')
-        ax3.set_ylabel('Position in m')
-        ax3.set_xlim((0.0, green_search_xlim))
-        ax3.set_ylim((0, self.track_length))
+            ax3 = self.fig.add_subplot(143)
+            ax3.plot([x*self.dt for x in range(len(self.viewer.history['position']))],
+                     self.viewer.history['position'],
+                     lw=2,
+                     color='k')
+            # if draw_signal_location:
+            xlim_max = 1000
+            for i in range(xlim_max):
+                if self.signal.is_green(int(self.timestep * self.dt)):
+                    signal_color = 'g'
+                else:
+                    signal_color = 'r'
 
-        ax4 = self.fig.add_subplot(144)
-        ax4.plot([x*self.dt for x in range(len(self.viewer.history['reward']))],
-                 self.viewer.history['reward'],
-                 lw=2,
-                 color='k')
-        xlim_max = int(max(100, len(self.viewer.history['position'])) * self.dt) + 1
+                ax3.plot([x*self.dt for x in range(int((i)/self.dt), int((i + 1)//self.dt)+1)],
+                         [self.signal.location] * len(range(int(i/self.dt), int((i + 1)//self.dt)+1)),
+                         color=signal_color
+                         )
+            green_search_xlim = int(max(100, len(self.viewer.history['position'])) * self.dt) + 1
 
-        ax4.set_xlabel('Time in s')
-        ax4.set_ylabel('reward')
-        ax4.set_xlim((0.0, xlim_max))
-        ax4.set_ylim((-5.0, 5.0))
+            ax3.set_xlabel('Time in s')
+            ax3.set_ylabel('Position in m')
+            ax3.set_xlim((0.0, green_search_xlim))
+            ax3.set_ylim((0, self.track_length))
+
+            ax4 = self.fig.add_subplot(144)
+            ax4.plot([x*self.dt for x in range(len(self.viewer.history['reward']))],
+                     self.viewer.history['reward'],
+                     lw=2,
+                     color='k')
+            xlim_max = int(max(100, len(self.viewer.history['position'])) * self.dt) + 1
+
+            ax4.set_xlabel('Time in s')
+            ax4.set_ylabel('reward')
+            ax4.set_xlim((0.0, xlim_max))
+            ax4.set_ylim((-5.0, 5.0))
 
         if self.violation:
             self.viewer.components['car'].color = (255, 0, 0)
@@ -332,29 +344,62 @@ class AdvSpdEnv(gym.Env):
         # print(f"position = {self.vehicle.position:.3f} || speed = {self.vehicle.velocity:.3f}")
 
     def _take_action(self, action):
-        self.vehicle.jerk = (action - self.vehicle.acceleration) / self.dt
-        self.vehicle.acceleration = action
-        self.vehicle.velocity = self.vehicle.velocity + action * self.dt
+        applied_action = action
+
+        max_acc = self.calculate_max_acceleration()
+        if max_acc < action:
+            applied_action = max_acc
+
+        if self.vehicle.velocity + applied_action * self.dt < 0:
+            applied_action = - self.vehicle.velocity / self.dt
+
+        self.vehicle.jerk = (applied_action - self.vehicle.acceleration) / self.dt
+        self.vehicle.acceleration = applied_action
+
+        assert(np.round(self.vehicle.velocity + applied_action * self.dt, -5) >= 0)
+        self.vehicle.velocity = self.vehicle.velocity + applied_action * self.dt
         self.vehicle.position = self.vehicle.position + self.vehicle.velocity * self.dt
+        # self.vehicle.action_limit_penalty = abs(applied_action / action)
 
     def _get_reward(self):
-        max_speed = 50/3.6
+        max_speed = self.speed_max
         reward_norm_velocity = np.abs((self.vehicle.velocity) - max_speed)
         reward_norm_velocity /= max_speed
 
         reward_jerk = self.vehicle.jerk
-        jerk_max = 10 / self.dt
+        jerk_max = (self.acc_max - self.acc_min) / self.dt
         reward_jerk /= jerk_max
 
         reward_shock = 10 if self.vehicle.velocity > max_speed else 0
-        penalty_signal_violation = 10 if self.violation else 0
+        # penalty_signal_violation = 100 if self.violation else 0
+        # penalty_action_limit = self.vehicle.action_limit_penalty if self.vehicle.action_limit_penalty != 1 else 0
+        # penalty_moving_backward = 1000 if self.vehicle.velocity < 0 else 0
+        # penalty_travel_time = 1
 
+        # reward_finishing = 1000 if self.vehicle.position > 490 else 0
         reward_power = self.energy_consumption() * self.dt / 3600
 
-        return -reward_norm_velocity - penalty_signal_violation - reward_shock - reward_jerk
+        return -reward_norm_velocity - \
+            reward_shock - \
+            reward_jerk - reward_power
         # return reward_norm_velocity
 
-    def energy_consumption(self, gain=.001):
+    def calculate_max_acceleration(self):
+
+        dec_th = self.dec_th
+        max_acc = 5
+        if not self.signal.is_green(int(self.timestep * self.dt)):
+
+            if self.vehicle.position < self.signal.location:
+                mild_stopping_distance = -(self.vehicle.velocity)**2 / (2 * (dec_th))
+                distance_to_signal = self.signal.location - self.stop_th - self.vehicle.position
+
+                if distance_to_signal < mild_stopping_distance:
+                    max_acc = dec_th
+
+        return max_acc
+
+    def energy_consumption(self):
         """Calculate power consumption of a vehicle.
 
         Assumes vehicle is an average sized vehicle.

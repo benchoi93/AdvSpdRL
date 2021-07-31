@@ -11,13 +11,14 @@ from stable_baselines3.common.callbacks import CheckpointCallback
 # scenario[0, 100, 20:] = 1
 
 env = AdvSpdEnv()
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+cuda = '0'
+os.environ["CUDA_VISIBLE_DEVICES"] = cuda
 
-checkpoint_callback = CheckpointCallback(save_freq=10000, save_path="./params/PPO2", name_prefix="AdvSpdRL_PPO")
+checkpoint_callback = CheckpointCallback(save_freq=100000, save_path=f"./params/PPO{int(cuda)}", name_prefix="AdvSpdRL_PPO")
 
 model = PPO("MlpPolicy", env, verbose=1, tensorboard_log="log/PPO/", device='cuda')
 # model.save("params/AdvSpdRL")
-model.learn(total_timesteps=10000000, callback=checkpoint_callback)
+model.learn(total_timesteps=1000000000, callback=checkpoint_callback)
 model.save("params/AdvSpdRL_PPO")
 
 # checkpoint_callback = CheckpointCallback(save_freq=10000, save_path="./params/SAC", name_prefix="AdvSpdRL_SAC")
