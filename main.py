@@ -14,12 +14,13 @@ import pickle
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--cuda', default='0', type=str)
-parser.add_argument('--model', default='DDPG', type=str)
+parser.add_argument('--model', default='SAC', type=str)
 parser.add_argument('--coef-vel', default=1, type=float)
 parser.add_argument('--coef-shock', default=10, type=float, help="add penalty to exceeding speed limit")
 parser.add_argument('--coef-jerk', default=1, type=float)
-parser.add_argument('--coef-power', default=0.01, type=float)
+parser.add_argument('--coef-power', default=0, type=float)
 parser.add_argument('--coef-tt', default=0, type=float)
+parser.add_argument('--max-episode-steps', default=2400, type=int)
 args = parser.parse_args()
 
 cuda = args.cuda
@@ -30,10 +31,10 @@ env = AdvSpdEnv(reward_coef=[args.coef_vel,
                              args.coef_jerk,
                              args.coef_power,
                              args.coef_tt,
-                             1]  # coef_signal_violation
-                )
+                             1],  # coef_signal_violation
+                timelimit=args.max_episode_steps)
 
-env = gym.wrappers.TimeLimit(env, max_episode_steps=2400)
+env = gym.wrappers.TimeLimit(env, max_episode_steps=args.max_episode_steps)
 
 model = args.model
 checkpoint_callback = CheckpointCallback(save_freq=100000, save_path=f"./params/{model}{int(cuda)}", name_prefix=f"AdvSpdRL_{model}")

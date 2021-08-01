@@ -12,12 +12,10 @@ from stable_baselines3.common.callbacks import CheckpointCallback
 # scenario = np.ones(shape=(1, 200, 40))
 # scenario[0, 100, 20:] = 1
 
-modelname = 'DDPG'
+modelname = 'SAC'
 cuda = '0'
-coef_power = 0.01
+# coef_power = 0.01
 # param = 'AdvSpdRL_DDPG_3500000_steps'
-list_of_files = glob.glob(os.path.join('params', f'{modelname}{cuda}/*'))
-latest_file = max(list_of_files, key=os.path.getctime)
 
 try:
     env = pickle.load(open(os.path.join('params', f'{modelname}{cuda}', 'env.pkl'), 'rb'))
@@ -26,6 +24,8 @@ except:
     env = AdvSpdEnv()
 
 model = globals()[modelname]("MlpPolicy", env, verbose=1)
+list_of_files = glob.glob(os.path.join('params', f'{modelname}{cuda}/*'))
+latest_file = max(list_of_files, key=os.path.getmtime)
 model = model.load(latest_file)
 # env = env
 
@@ -44,5 +44,5 @@ while not episode_over:
     # input()
 
 env.render(info_show=True)
-time.sleep(10)
+input()
 env.viewer.close()
