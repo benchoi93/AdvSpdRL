@@ -15,12 +15,13 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--cuda', default='0', type=str)
 parser.add_argument('--model', default='SAC', type=str)
-parser.add_argument('--coef-vel', default=1, type=float)
+parser.add_argument('--coef-vel', default=1, type=float, help="add penalty to difference between current speed and speed limit")
 parser.add_argument('--coef-shock', default=10, type=float, help="add penalty to exceeding speed limit")
-parser.add_argument('--coef-jerk', default=1, type=float)
-parser.add_argument('--coef-power', default=0, type=float)
-parser.add_argument('--coef-tt', default=0, type=float)
-parser.add_argument('--max-episode-steps', default=2400, type=int)
+parser.add_argument('--coef-jerk', default=0, type=float, help="add penalty to large jerk")
+parser.add_argument('--coef-power', default=0, type=float, help="add penalty to large power consumption")
+parser.add_argument('--coef-tt', default=0, type=float, help="add penalty to traveltime")
+# parser.add_argument('--coef-signal', default=100, type=float, help="add penalty to traveltime")
+parser.add_argument('--max-episode-steps', default=2400, type=int, help="maximum number of steps in one episode")
 args = parser.parse_args()
 
 cuda = args.cuda
