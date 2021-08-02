@@ -20,7 +20,8 @@ class TrafficSignal(object):
         self.phase_length = {True: 30, False: 90}
         self.cycle_length = sum(self.phase_length.values())
 
-        self.location = min_location + np.random.rand() * (max_location - min_location)
+        self.location = 300
+        # self.location = min_location + np.random.rand() * (max_location - min_location)
         self.timetable = np.ones(shape=[self.cycle_length]) * -1
 
         offset = 40
@@ -65,7 +66,7 @@ class TrafficSignal(object):
 
 
 class AdvSpdEnv(gym.Env):
-    def __init__(self, dt=0.1, track_length=500.0, acc_max=5, acc_min=-5, speed_max=50.0/3.6, dec_th=-3, stop_th=2, reward_coef=[1, 1, 1, 0.01, 1]):
+    def __init__(self, dt=0.1, track_length=500.0, acc_max=5, acc_min=-5, speed_max=50.0/3.6, dec_th=-3, stop_th=2, reward_coef=[1, 10, 1, 0.01, 0, 1], timelimit=2400):
 
         # num_observations = 2
         self.dt = dt
@@ -77,6 +78,7 @@ class AdvSpdEnv(gym.Env):
         self.stop_th = stop_th
         self.reward_coef = reward_coef
         # [-reward_norm_velocity, -reward_shock, -reward_jerk, -reward_power, -penalty_travel_time]
+        self.timelimit = timelimit
 
         self.action_space = spaces.Box(low=acc_min, high=acc_max, shape=[1, ])
         self.reset()
@@ -87,11 +89,11 @@ class AdvSpdEnv(gym.Env):
                                0.0,  # green time start
                                0.0  # green time end
                                ])
-        max_states = np.array([self.track_length,  # position
+        max_states = np.array([self.track_length*2,  # position
                                speed_max,  # velocity
-                               self.track_length,   # signal location
-                               self.signal.timetable.shape[0],   # green time start
-                               self.signal.timetable.shape[0]   # green time end
+                               self.track_length*2,   # signal location
+                               self.timelimit*2,   # green time start
+                               self.timelimit*2  # green time end
                                ])
 
         self.observation_space = spaces.Box(low=min_states,
@@ -152,11 +154,18 @@ class AdvSpdEnv(gym.Env):
         return ob, reward, episode_over, {}
 
     def _get_state(self):
+        # if self.vehicle.position < self.signal.location:
         self.state = [self.vehicle.position,
                       self.vehicle.velocity,
                       self.signal.location,
-                      self.signal.get_greentime(int(self.timestep*self.dt))[0],
-                      self.signal.get_greentime(int(self.timestep*self.dt))[1]]
+                      self.signal.get_greentime(int(self.timestep*self.dt))[0] / self.dt,
+                      self.signal.get_greentime(int(self.timestep*self.dt))[1] / self.dt]
+        # else:
+        #     self.state = [self.vehicle.position,
+        #                   self.vehicle.velocity,
+        #                   self.track_length*2,
+        #                   self.timelimit*2,
+        #                   self.timelimit*2]
         return self.state
 
     def reset(self):
@@ -405,7 +414,10 @@ class AdvSpdEnv(gym.Env):
         penalty_travel_time = 1
 
         # reward_finishing = 1000 if self.vehicle.position > 490 else 0
-        reward_power = self.energy_consumption() * self.dt / 75 * 0.5
+        # reward_power = self.energy_consumption() * self.dt / 75 * 0.5
+
+        power = -self.energy_consumption()
+        reward_power = self.vehicle.velocity / power if (power > 0 and self.vehicle.velocity >= 0) else 0
 
         return [-reward_norm_velocity, -reward_shock, -reward_jerk, -reward_power, -penalty_travel_time, -penalty_signal_violation]
         # return -reward_norm_velocity - \
@@ -430,7 +442,7 @@ class AdvSpdEnv(gym.Env):
 
         return max_acc
 
-    def energy_consumption(self):
+    def energy_consumption(self, gain=0.001):
         """Calculate power consumption of a vehicle.
 
         Assumes vehicle is an average sized vehicle.
@@ -449,4 +461,4 @@ class AdvSpdEnv(gym.Env):
         speed = self.vehicle.velocity
         accel = self.vehicle.acceleration
         power += M * speed * accel + M * g * Cr * speed + 0.5 * rho * A * Ca * speed ** 3
-        return power * 0.001  # kilo Watts (KW)
+        return - power * gain  # kilo Watts (KW)
