@@ -66,7 +66,7 @@ class TrafficSignal(object):
 
 
 class AdvSpdEnv(gym.Env):
-    def __init__(self, dt=0.1, track_length=500.0, acc_max=5, acc_min=-5, speed_max=50.0/3.6, dec_th=-3, stop_th=2, reward_coef=[1, 10, 1, 0.01, 0, 1], timelimit=2400):
+    def __init__(self, dt=0.1, track_length=500.0, acc_max=5, acc_min=-5, speed_max=50.0/3.6, dec_th=-3, stop_th=2, reward_coef=[1, 10, 1, 0.01, 0, 1, 1], timelimit=2400):
 
         # num_observations = 2
         self.dt = dt
@@ -413,13 +413,15 @@ class AdvSpdEnv(gym.Env):
         # penalty_moving_backward = 1000 if self.vehicle.velocity < 0 else 0
         penalty_travel_time = 1
 
+        reward_remaining_distance = (self.track_length - self.vehicle.position) / self.track_length
+
         # reward_finishing = 1000 if self.vehicle.position > 490 else 0
         # reward_power = self.energy_consumption() * self.dt / 75 * 0.5
 
         power = -self.energy_consumption()
         reward_power = self.vehicle.velocity / power if (power > 0 and self.vehicle.velocity >= 0) else 0
 
-        return [-reward_norm_velocity, -reward_shock, -reward_jerk, -reward_power, -penalty_travel_time, -penalty_signal_violation]
+        return [-reward_norm_velocity, -reward_shock, -reward_jerk, -reward_power, -penalty_travel_time, -penalty_signal_violation, -reward_remaining_distance]
         # return -reward_norm_velocity - \
         #     reward_shock - \
         #     reward_jerk - \

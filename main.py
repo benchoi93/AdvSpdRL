@@ -21,6 +21,7 @@ parser.add_argument('--coef-jerk', default=0, type=float, help="add penalty to l
 parser.add_argument('--coef-power', default=0, type=float, help="add penalty to large power consumption")
 parser.add_argument('--coef-tt', default=0, type=float, help="add penalty to traveltime")
 # parser.add_argument('--coef-signal', default=100, type=float, help="add penalty to traveltime")
+parser.add_argument('--coef-distance', default=0, type=float, help="add penalty to remaining travel distance")
 parser.add_argument('--max-episode-steps', default=2400, type=int, help="maximum number of steps in one episode")
 args = parser.parse_args()
 
@@ -32,7 +33,8 @@ env = AdvSpdEnv(reward_coef=[args.coef_vel,
                              args.coef_jerk,
                              args.coef_power,
                              args.coef_tt,
-                             1],  # coef_signal_violation
+                             1,
+                             args.coef_distance],  # coef_signal_violation
                 timelimit=args.max_episode_steps)
 
 env = gym.wrappers.TimeLimit(env, max_episode_steps=args.max_episode_steps)
