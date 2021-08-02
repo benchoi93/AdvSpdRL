@@ -314,9 +314,9 @@ class AdvSpdEnv(gym.Env):
                      lw=2,
                      color='k')
             # if draw_signal_location:
-            xlim_max = 1000
+            xlim_max = self.timelimit
             for i in range(xlim_max):
-                if self.signal.is_green(int(self.timestep * self.dt)):
+                if self.signal.is_green(i):
                     signal_color = 'g'
                 else:
                     signal_color = 'r'
