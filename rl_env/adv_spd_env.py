@@ -407,8 +407,8 @@ class AdvSpdEnv(gym.Env):
         jerk_max = (self.acc_max - self.acc_min) / self.dt
         reward_jerk /= jerk_max
 
-        reward_shock = np.exp(self.vehicle.velocity - max_speed) - 1 if self.vehicle.velocity > max_speed else 0
-        penalty_signal_violation = 100 if self.violation else 0
+        reward_shock = 1 if self.vehicle.velocity > max_speed else 0
+        penalty_signal_violation = 1 if self.violation else 0
         # penalty_action_limit = self.vehicle.action_limit_penalty if self.vehicle.action_limit_penalty != 1 else 0
         # penalty_moving_backward = 1000 if self.vehicle.velocity < 0 else 0
         penalty_travel_time = 1
