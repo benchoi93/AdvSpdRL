@@ -1,6 +1,7 @@
 
 import gym
 import os
+from torch import nn
 from torch._C import device
 from rl_env.adv_spd_env import AdvSpdEnv
 
@@ -14,7 +15,7 @@ import pickle
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--cuda', default='0', type=str)
-parser.add_argument('--model', default='SAC', type=str)
+parser.add_argument('--model', default='PPO', type=str)
 parser.add_argument('--coef-vel', default=1, type=float, help="add penalty to difference between current speed and speed limit")
 parser.add_argument('--coef-shock', default=10, type=float, help="add penalty to exceeding speed limit")
 parser.add_argument('--coef-jerk', default=0, type=float, help="add penalty to large jerk")
@@ -23,10 +24,20 @@ parser.add_argument('--coef-tt', default=0, type=float, help="add penalty to tra
 parser.add_argument('--coef-signal', default=100, type=float, help="add penalty to traveltime")
 parser.add_argument('--coef-distance', default=0, type=float, help="add penalty to remaining travel distance")
 parser.add_argument('--max-episode-steps', default=2400, type=int, help="maximum number of steps in one episode")
+parser.add_argument('--activation', default='relu', type=str, choices=['relu', 'tanh'], help="activation function of policy networks")
 args = parser.parse_args()
 
+print(args)
 cuda = args.cuda
 os.environ["CUDA_VISIBLE_DEVICES"] = cuda
+
+if args.activation == 'relu':
+    activation_fn = nn.ReLU
+elif args.activation == 'tanh':
+    activation_fn = nn.Tanh
+else:
+    print("wrong inpu")
+
 
 env = AdvSpdEnv(reward_coef=[args.coef_vel,
                              args.coef_shock,
@@ -36,6 +47,7 @@ env = AdvSpdEnv(reward_coef=[args.coef_vel,
                              args.coef_signal,
                              args.coef_distance],  # coef_signal_violation
                 timelimit=args.max_episode_steps)
+
 
 env = gym.wrappers.TimeLimit(env, max_episode_steps=args.max_episode_steps)
 
@@ -48,7 +60,7 @@ if not os.path.exists(directory):
 
 pickle.dump(env, open(f"params/{model}{int(cuda)}/env.pkl", 'wb'))
 
-model = globals()[model]("MlpPolicy", env, verbose=1, tensorboard_log=f"log/{model}/", device='cuda')
+model = globals()[model]("MlpPolicy", env, verbose=1, tensorboard_log=f"log/{model}/", device='cuda', policy_kwargs={"activation_fn": activation_fn})
 # model.save("params/AdvSpdRL")
 model.learn(total_timesteps=1000000000, callback=checkpoint_callback)
 model.save("params/AdvSpdRL_PPO")

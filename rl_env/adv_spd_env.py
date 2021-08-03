@@ -103,6 +103,12 @@ class AdvSpdEnv(gym.Env):
         self.viewer = None
         pass
 
+    def save(self):
+        pass
+
+    def load(self):
+        pass
+
     def get_random_action(self):
         return self.acc_min + (np.random.rand()) * (self.acc_max - self.acc_min)
 
