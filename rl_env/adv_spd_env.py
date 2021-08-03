@@ -439,6 +439,10 @@ class AdvSpdEnv(gym.Env):
 
         dec_th = self.dec_th
         max_acc = self.acc_max
+
+        spd_max_acc = (self.speed_max - self.vehicle.velocity)/self.dt
+        max_acc = spd_max_acc if max_acc > spd_max_acc else max_acc
+
         if not self.signal.is_green(int(self.timestep * self.dt)):
 
             if self.vehicle.position < self.signal.location:
