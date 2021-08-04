@@ -12,6 +12,36 @@ class Vehicle(object):
         self.acceleration = 0
         self.jerk = 0
         self.action_limit_penalty = 1
+        self.actiongap = 0
+
+
+class SectionMaxSpeed(object):
+    def __init__(self, track_length=500, unit_length=25, min_speed=30, max_speed=50):
+        assert(min_speed <= max_speed)
+        assert(unit_length*2 <= track_length)
+
+        self.track_length = track_length
+        self.unit_length = unit_length
+        self.min_speed = min_speed/3.6
+        self.max_speed = max_speed/3.6
+
+        self.num_section = int(self.track_length / self.unit_length)
+        assert(self.num_section > 0)
+        self.section_max_speed = self.min_speed + np.random.random(size=self.num_section+1) * (self.max_speed - self.min_speed)
+
+    def get_cur_max_speed(self, x):
+        return self.section_max_speed[int(x/self.unit_length)]
+
+    def get_next_max_speed(self, x):
+        i = int(x/self.unit_length)
+        if i+1 < self.num_section-1:
+            return self.section_max_speed[i+1]
+        else:
+            return self.max_speed
+
+    def get_distance_to_next_section(self, x):
+        i = int(x/self.unit_length)
+        return (i+1) * self.unit_length - x
 
 
 class TrafficSignal(object):
@@ -66,7 +96,7 @@ class TrafficSignal(object):
 
 
 class AdvSpdEnv(gym.Env):
-    def __init__(self, dt=0.1, track_length=500.0, acc_max=5, acc_min=-5, speed_max=50.0/3.6, dec_th=-3, stop_th=2, reward_coef=[1, 10, 1, 0.01, 0, 1, 1], timelimit=2400):
+    def __init__(self, dt=0.1, track_length=500.0, acc_max=5, acc_min=-5, speed_max=100.0/3.6, dec_th=-3, stop_th=2, reward_coef=[1, 10, 1, 0.01, 0, 1, 1, 1], timelimit=2400):
 
         # num_observations = 2
         self.dt = dt
@@ -85,12 +115,18 @@ class AdvSpdEnv(gym.Env):
 
         min_states = np.array([0.0,  # position
                                0.0,  # velocity
+                               0.0,  # cur_max_speed
+                               0.0,  # next_max_speed
+                               0.0,  # distance to next section
                                0.0,  # signal location
                                0.0,  # green time start
                                0.0  # green time end
                                ])
         max_states = np.array([self.track_length*2,  # position
-                               speed_max,  # velocity
+                               self.speed_max,  # velocity
+                               self.speed_max,  # cur_max_speed
+                               self.speed_max,  # next_max_speed
+                               25.0,  # distance to next section
                                self.track_length*2,   # signal location
                                self.timelimit*2,   # green time start
                                self.timelimit*2  # green time end
@@ -163,6 +199,9 @@ class AdvSpdEnv(gym.Env):
         # if self.vehicle.position < self.signal.location:
         self.state = [self.vehicle.position,
                       self.vehicle.velocity,
+                      self.section.get_cur_max_speed(self.vehicle.position),
+                      self.section.get_next_max_speed(self.vehicle.position),
+                      self.section.get_distance_to_next_section(self.vehicle.position),
                       self.signal.location,
                       self.signal.get_greentime(int(self.timestep*self.dt))[0] / self.dt,
                       self.signal.get_greentime(int(self.timestep*self.dt))[1] / self.dt]
@@ -178,15 +217,12 @@ class AdvSpdEnv(gym.Env):
 
         self.vehicle = Vehicle()
         self.signal = TrafficSignal()
+        self.section = SectionMaxSpeed(self.track_length)
 
         self.timestep = 0
         self.violation = False
 
-        self.state = [self.vehicle.position,
-                      self.vehicle.velocity,
-                      self.signal.location,
-                      self.signal.get_greentime(int(self.timestep*self.dt))[0],
-                      self.signal.get_greentime(int(self.timestep*self.dt))[1]]
+        self.state = self._get_state()
 
         self.reward = 0
         self.done = False
@@ -388,6 +424,7 @@ class AdvSpdEnv(gym.Env):
 
     def _take_action(self, action):
         applied_action = action
+        self.vehicle.actiongap = action
 
         max_acc = self.calculate_max_acceleration()
         if max_acc < action:
@@ -399,13 +436,15 @@ class AdvSpdEnv(gym.Env):
         self.vehicle.jerk = (applied_action - self.vehicle.acceleration) / self.dt
         self.vehicle.acceleration = applied_action
 
+        self.vehicle.actiongap -= applied_action
+
         assert(np.round(self.vehicle.velocity + applied_action * self.dt, -5) >= 0)
         self.vehicle.velocity = self.vehicle.velocity + applied_action * self.dt
         self.vehicle.position = self.vehicle.position + self.vehicle.velocity * self.dt
         # self.vehicle.action_limit_penalty = abs(applied_action / action)
 
     def _get_reward(self):
-        max_speed = self.speed_max
+        max_speed = self.section.get_cur_max_speed(self.vehicle.position)
         reward_norm_velocity = np.abs((self.vehicle.velocity) - max_speed)
         reward_norm_velocity /= max_speed
 
@@ -413,7 +452,7 @@ class AdvSpdEnv(gym.Env):
         jerk_max = (self.acc_max - self.acc_min) / self.dt
         reward_jerk /= jerk_max
 
-        reward_shock = 1 if self.vehicle.velocity > max_speed else 0
+        reward_shock = 1 if self.vehicle.velocity > self.section.get_cur_max_speed(self.vehicle.position) else 0
         penalty_signal_violation = 1 if self.violation else 0
         # penalty_action_limit = self.vehicle.action_limit_penalty if self.vehicle.action_limit_penalty != 1 else 0
         # penalty_moving_backward = 1000 if self.vehicle.velocity < 0 else 0
@@ -421,13 +460,14 @@ class AdvSpdEnv(gym.Env):
 
         reward_remaining_distance = (self.track_length - self.vehicle.position) / self.track_length
 
+        reward_action_gap = self.vehicle.actiongap / (self.acc_max - self.acc_min)
         # reward_finishing = 1000 if self.vehicle.position > 490 else 0
         # reward_power = self.energy_consumption() * self.dt / 75 * 0.5
 
         power = -self.energy_consumption()
         reward_power = self.vehicle.velocity / power if (power > 0 and self.vehicle.velocity >= 0) else 0
 
-        return [-reward_norm_velocity, -reward_shock, -reward_jerk, -reward_power, -penalty_travel_time, -penalty_signal_violation, -reward_remaining_distance]
+        return [-reward_norm_velocity, -reward_shock, -reward_jerk, -reward_power, -penalty_travel_time, -penalty_signal_violation, -reward_remaining_distance, -reward_action_gap]
         # return -reward_norm_velocity - \
         #     reward_shock - \
         #     reward_jerk - \

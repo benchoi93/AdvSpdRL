@@ -12,8 +12,8 @@ from stable_baselines3.common.callbacks import CheckpointCallback
 # scenario = np.ones(shape=(1, 200, 40))
 # scenario[0, 100, 20:] = 1
 
-modelname = 'PPO'
-cuda = '1'
+modelname = 'SAC'
+cuda = '0'
 # coef_power = 0.01
 # param = 'AdvSpdRL_DDPG_3500000_steps'
 
@@ -38,8 +38,8 @@ print(env.reward_coef)
 while not episode_over:
     # action = np.array(env.get_random_action())
     action, _ = model.predict(ob)
-    action = np.array(min(5, (50/3.6 - ob[1]) / env.dt))
-    # print(action)
+    # action = np.array(min(5, (50/3.6 - ob[1]) / env.dt))
+    print(action)
     ob, reward, episode_over, info = env.step(action)
     ob_list.append([env.vehicle.position, env.vehicle.velocity, env.vehicle.acceleration, env.timestep, reward])
     env.render()

@@ -13,16 +13,21 @@ from stable_baselines3.common.callbacks import CheckpointCallback
 # scenario[0, 100, 20:] = 1
 import pickle
 import argparse
+
+# from rl_env.policy import MlpExtractor_AdvSpdRL
+
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--cuda', default='0', type=str)
-parser.add_argument('--model', default='PPO', type=str)
+parser.add_argument('--model', default='SAC', type=str)
 parser.add_argument('--coef-vel', default=1, type=float, help="add penalty to difference between current speed and speed limit")
-parser.add_argument('--coef-shock', default=10, type=float, help="add penalty to exceeding speed limit")
+parser.add_argument('--coef-shock', default=1, type=float, help="add penalty to exceeding speed limit")
 parser.add_argument('--coef-jerk', default=0, type=float, help="add penalty to large jerk")
 parser.add_argument('--coef-power', default=0, type=float, help="add penalty to large power consumption")
 parser.add_argument('--coef-tt', default=0, type=float, help="add penalty to traveltime")
 parser.add_argument('--coef-signal', default=100, type=float, help="add penalty to traveltime")
 parser.add_argument('--coef-distance', default=0, type=float, help="add penalty to remaining travel distance")
+parser.add_argument('--coef-actiongap', default=0, type=float, help="add penalty to gap between calculated action and applied action")
 parser.add_argument('--max-episode-steps', default=2400, type=int, help="maximum number of steps in one episode")
 parser.add_argument('--activation', default='relu', type=str, choices=['relu', 'tanh'], help="activation function of policy networks")
 args = parser.parse_args()
@@ -45,7 +50,8 @@ env = AdvSpdEnv(reward_coef=[args.coef_vel,
                              args.coef_power,
                              args.coef_tt,
                              args.coef_signal,
-                             args.coef_distance],  # coef_signal_violation
+                             args.coef_distance,
+                             args.coef_actiongap],  # coef_signal_violation
                 timelimit=args.max_episode_steps)
 
 
@@ -60,7 +66,13 @@ if not os.path.exists(directory):
 
 pickle.dump(env, open(f"params/{model}{int(cuda)}/env.pkl", 'wb'))
 
-model = globals()[model]("MlpPolicy", env, verbose=1, tensorboard_log=f"log/{model}/", device='cuda', policy_kwargs={"activation_fn": activation_fn})
+model = globals()[model]("MlpPolicy",
+                         env,
+                         verbose=1,
+                         tensorboard_log=f"log/{model}/",
+                         device='cuda',
+                         policy_kwargs={"activation_fn": activation_fn}
+                         )
 # model.save("params/AdvSpdRL")
 model.learn(total_timesteps=1000000000, callback=checkpoint_callback)
 model.save("params/AdvSpdRL_PPO")
