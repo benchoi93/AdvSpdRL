@@ -16,7 +16,7 @@ class Vehicle(object):
 
 
 class SectionMaxSpeed(object):
-    def __init__(self, track_length=500, unit_length=25, min_speed=30, max_speed=50):
+    def __init__(self, track_length=500, unit_length=100, min_speed=30, max_speed=50):
         assert(min_speed <= max_speed)
         assert(unit_length*2 <= track_length)
 
@@ -96,7 +96,7 @@ class TrafficSignal(object):
 
 
 class AdvSpdEnv(gym.Env):
-    def __init__(self, dt=0.1, track_length=500.0, acc_max=5, acc_min=-5, speed_max=100.0/3.6, dec_th=-3, stop_th=2, reward_coef=[1, 10, 1, 0.01, 0, 1, 1, 1], timelimit=2400):
+    def __init__(self, dt=0.1, track_length=500.0, acc_max=5, acc_min=-5, speed_max=100.0/3.6, dec_th=-3, stop_th=2, reward_coef=[1, 10, 1, 0.01, 0, 1, 1, 1], timelimit=2400, unit_length = 100):
 
         # num_observations = 2
         self.dt = dt
@@ -109,6 +109,7 @@ class AdvSpdEnv(gym.Env):
         self.reward_coef = reward_coef
         # [-reward_norm_velocity, -reward_shock, -reward_jerk, -reward_power, -penalty_travel_time]
         self.timelimit = timelimit
+        self.unit_length = unit_length
 
         self.action_space = spaces.Box(low=acc_min, high=acc_max, shape=[1, ])
         self.reset()
@@ -126,7 +127,7 @@ class AdvSpdEnv(gym.Env):
                                self.speed_max,  # velocity
                                self.speed_max,  # cur_max_speed
                                self.speed_max,  # next_max_speed
-                               25.0,  # distance to next section
+                               self.unit_length,  # distance to next section
                                self.track_length*2,   # signal location
                                self.timelimit*2,   # green time start
                                self.timelimit*2  # green time end
@@ -328,11 +329,15 @@ class AdvSpdEnv(gym.Env):
                     self.viewer.history['velocity'],
                     lw=2,
                     color='k')
-            # ax.plot(self.viewer.history['position'],
-            #         self.viewer.history['speed_limit'],
-            #         lw=1.5,
-            #         ls='--',
-            #         color='r')
+            for i in range(self.section.num_section):
+                from_x = i * self.section.unit_length
+                to_x = (i+1) * self.section.unit_length
+                ax.plot([from_x, to_x],
+                        [self.section.get_cur_max_speed(from_x)*3.6, self.section.get_cur_max_speed(from_x)*3.6],
+                        lw=1.5,
+                        ls='--',
+                        color='r')
+
             ax.set_xlabel('Position in m')
             ax.set_ylabel('Velocity in km/h')
             ax.set_xlim(
