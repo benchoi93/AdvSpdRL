@@ -335,7 +335,6 @@ class AdvSpdEnv(gym.Env):
                 ax.plot([from_x, to_x],
                         [self.section.get_cur_max_speed(from_x)*3.6, self.section.get_cur_max_speed(from_x)*3.6],
                         lw=1.5,
-                        ls='--',
                         color='r')
 
             ax.set_xlabel('Position in m')
@@ -438,7 +437,7 @@ class AdvSpdEnv(gym.Env):
         if self.vehicle.velocity + applied_action * self.dt < 0:
             applied_action = - self.vehicle.velocity / self.dt
 
-        self.vehicle.jerk = (applied_action - self.vehicle.acceleration) / self.dt
+        self.vehicle.jerk = abs(applied_action - self.vehicle.acceleration) / self.dt
         self.vehicle.acceleration = applied_action
 
         self.vehicle.actiongap -= applied_action
