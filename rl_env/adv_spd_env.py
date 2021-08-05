@@ -96,7 +96,7 @@ class TrafficSignal(object):
 
 
 class AdvSpdEnv(gym.Env):
-    def __init__(self, dt=0.1, track_length=500.0, acc_max=5, acc_min=-5, speed_max=100.0/3.6, dec_th=-3, stop_th=2, reward_coef=[1, 10, 1, 0.01, 0, 1, 1, 1], timelimit=2400, unit_length = 100):
+    def __init__(self, dt=0.1, track_length=500.0, acc_max=5, acc_min=-5, speed_max=100.0/3.6, dec_th=-3, stop_th=2, reward_coef=[1, 10, 1, 0.01, 0, 1, 1, 1], timelimit=2400, unit_length=100):
 
         # num_observations = 2
         self.dt = dt
@@ -453,7 +453,7 @@ class AdvSpdEnv(gym.Env):
         reward_norm_velocity = np.abs((self.vehicle.velocity) - max_speed)
         reward_norm_velocity /= max_speed
 
-        reward_jerk = self.vehicle.jerk
+        reward_jerk = np.abs(self.vehicle.jerk)
         jerk_max = (self.acc_max - self.acc_min) / self.dt
         reward_jerk /= jerk_max
 
