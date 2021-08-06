@@ -194,7 +194,7 @@ class AdvSpdEnv(gym.Env):
 
         return self.state
 
-    def render(self, mode='human', info_show=False, close=False):
+    def render(self, mode='human', info_show=False, close=False,visible=True):
         screen_width = 1200
         screen_height = 450
 
@@ -380,7 +380,7 @@ class AdvSpdEnv(gym.Env):
             clearance_y)
         mode = None
         # self.viewer.activate()
-        return self.viewer.render(return_rgb_array=mode == 'rgb_array')
+        return self.viewer.render(return_rgb_array=mode == 'rgb_array', visible=visible)
         # import time
         # input()
         # self.viewer.close()

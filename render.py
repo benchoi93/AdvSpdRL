@@ -13,7 +13,7 @@ from stable_baselines3.common.callbacks import CheckpointCallback
 # scenario[0, 100, 20:] = 1
 
 modelname = 'PPO'
-cuda = '1'
+cuda = '0'
 # coef_power = 0.01
 # param = 'AdvSpdRL_DDPG_3500000_steps'
 
@@ -26,7 +26,7 @@ env = pickle.load(open(os.path.join('params', f'{modelname}{cuda}', 'env.pkl'), 
 model = globals()[modelname]("MlpPolicy", env, verbose=1)
 list_of_files = glob.glob(os.path.join('params', f'{modelname}{cuda}/*'))
 latest_file = max(list_of_files, key=os.path.getmtime)
-model = model.load(latest_file)
+# model = model.load(latest_file)
 # env = env
 
 ob = env.reset()
@@ -42,10 +42,11 @@ while not episode_over:
     # print(action)
     ob, reward, episode_over, info = env.step(action)
     ob_list.append([env.vehicle.position, env.vehicle.velocity, env.vehicle.acceleration, env.timestep, reward])
-    env.render()
+    env.render(visible=False)
     # input()
 
 print(sum([x[4] for x in ob_list]))
 env.render(info_show=True)
-input()
+# input()
 env.viewer.close()
+

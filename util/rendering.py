@@ -35,11 +35,12 @@ class Viewer(pyglet.window.Window):
 
         pyglet.gl.glClearColor(1, 1, 1, 1)
 
-    def render(self, return_rgb_array=False):
+    def render(self, return_rgb_array=False, visible=True):
         self.clear()
         self.dispatch_event('on_draw')
         self.dispatch_events()
         arr = None
+        self.set_visible(visible)
         
         pyglet.image.get_buffer_manager().get_color_buffer().save('simulate_gif/{}.png'.format(self.step))
         self.gif.append(PIL.Image.open('simulate_gif/{}.png'.format(self.step)))
