@@ -1,5 +1,8 @@
 import io
 import numpy as np
+import os
+import PIL.Image
+import glob
 
 try:
     import pyglet
@@ -25,6 +28,11 @@ class Viewer(pyglet.window.Window):
         self.components = {}
 
         self.history = {}
+        self.step = 0
+        self.screenshot = []
+        self.gif = []
+        self.checkfinish = False
+
         pyglet.gl.glClearColor(1, 1, 1, 1)
 
     def render(self, return_rgb_array=False):
@@ -32,6 +40,17 @@ class Viewer(pyglet.window.Window):
         self.dispatch_event('on_draw')
         self.dispatch_events()
         arr = None
+        
+        pyglet.image.get_buffer_manager().get_color_buffer().save('simulate_gif/{}.png'.format(self.step))
+        self.gif.append(PIL.Image.open('simulate_gif/{}.png'.format(self.step)))
+        self.step += 1
+        
+        if self.checkfinish == True:
+            self.gif[0].save('simulate_gif/simulation.gif', save_all=True, append_images=self.gif[1:], optimize=False, duration=30, loop=0)
+            [os.remove(f) for f in glob.glob("./simulate_gif/*.png")]
+            
+            pyglet.image.get_buffer_manager().get_color_buffer().save('simulate_gif/plot_results.png')
+
         if return_rgb_array:
             buffer = pyglet.image.get_buffer_manager().get_color_buffer()
             image_data = buffer.get_image_data()
