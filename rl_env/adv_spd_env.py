@@ -362,6 +362,8 @@ class AdvSpdEnv(gym.Env):
             ax4.set_xlim((0.0, xlim_max))
             ax4.set_ylim((-1.0, 1.0))
 
+            self.viewer.checkfinish = True
+
         if self.violation:
             self.viewer.components['car'].color = (255, 0, 0)
         else:
