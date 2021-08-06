@@ -37,13 +37,11 @@ class Viewer(pyglet.window.Window):
 
     def render(self, return_rgb_array=False, visible=True):
         self.clear()
+        self.set_visible(visible)
         self.dispatch_event('on_draw')
         self.dispatch_events()
         arr = None
-        self.set_visible(visible)
         
-        pyglet.image.get_buffer_manager().get_color_buffer().save('simulate_gif/{}.png'.format(self.step))
-        self.gif.append(PIL.Image.open('simulate_gif/{}.png'.format(self.step)))
         self.step += 1
         
         if self.checkfinish == True:
@@ -78,6 +76,9 @@ class Viewer(pyglet.window.Window):
 
     def on_draw(self):
         self.batch.draw()
+        pyglet.image.get_buffer_manager().get_color_buffer().save('simulate_gif/{}.png'.format(self.step))
+        self.gif.append(PIL.Image.open('simulate_gif/{}.png'.format(self.step)))
+
 
     def on_key_press(self, key, modifiers):
         if key == pyglet.window.key.SPACE:
