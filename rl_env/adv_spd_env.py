@@ -7,8 +7,8 @@ class Vehicle(object):
     def __init__(self):
         max_speed = 50 / 3.6
         self.position = 0
-        self.velocity = np.random.rand() * max_speed
-        # self.velocity = 40/3.6
+        # self.velocity = np.random.rand() * max_speed
+        self.velocity = 40/3.6
         self.acceleration = 0
         self.jerk = 0
         self.action_limit_penalty = 1
@@ -50,12 +50,12 @@ class TrafficSignal(object):
         self.phase_length = {True: 30, False: 90}
         self.cycle_length = sum(self.phase_length.values())
 
-        # self.location = 300
-        self.location = min_location + np.random.rand() * (max_location - min_location)
+        self.location = 300
+        # self.location = min_location + np.random.rand() * (max_location - min_location)
         self.timetable = np.ones(shape=[self.cycle_length]) * -1
 
-        # offset = 40
-        offset = np.random.randint(0, self.cycle_length)
+        offset = 40
+        # offset = np.random.randint(0, self.cycle_length)
 
         for i in range(self.cycle_length):
             cur_idx = (i+offset) % self.cycle_length
