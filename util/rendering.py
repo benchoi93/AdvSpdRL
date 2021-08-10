@@ -35,21 +35,20 @@ class Viewer(pyglet.window.Window):
 
         pyglet.gl.glClearColor(1, 1, 1, 1)
 
-    def render(self, return_rgb_array=False):
+    def render(self, return_rgb_array=False, visible=True):
         self.clear()
+        self.set_visible(visible)
         self.dispatch_event('on_draw')
         self.dispatch_events()
         arr = None
         
-        pyglet.image.get_buffer_manager().get_color_buffer().save('simulate_gif/{}.png'.format(self.step))
-        self.gif.append(PIL.Image.open('simulate_gif/{}.png'.format(self.step)))
-        self.step += 1
+        # self.step += 1
         
-        if self.checkfinish == True:
-            self.gif[0].save('simulate_gif/simulation.gif', save_all=True, append_images=self.gif[1:], optimize=False, duration=30, loop=0)
-            [os.remove(f) for f in glob.glob("./simulate_gif/*.png")]
+        # if self.checkfinish == True:
+        #     self.gif[0].save('simulate_gif/simulation.gif', save_all=True, append_images=self.gif[1:], optimize=False, duration=30, loop=0)
+        #     [os.remove(f) for f in glob.glob("./simulate_gif/*.png")]
             
-            pyglet.image.get_buffer_manager().get_color_buffer().save('simulate_gif/plot_results.png')
+        #     pyglet.image.get_buffer_manager().get_color_buffer().save('simulate_gif/plot_results.png')
 
         if return_rgb_array:
             buffer = pyglet.image.get_buffer_manager().get_color_buffer()
@@ -77,6 +76,9 @@ class Viewer(pyglet.window.Window):
 
     def on_draw(self):
         self.batch.draw()
+        pyglet.image.get_buffer_manager().get_color_buffer().save('simulate_gif/{}.png'.format(self.step))
+        self.gif.append(PIL.Image.open('simulate_gif/{}.png'.format(self.step)))
+
 
     def on_key_press(self, key, modifiers):
         if key == pyglet.window.key.SPACE:

@@ -4,7 +4,7 @@ import pickle
 import matplotlib.pyplot as plt
 import time
 from rl_env.adv_spd_env import AdvSpdEnv
-
+from PIL import Image
 import numpy as np
 
 from stable_baselines3 import PPO, SAC, DDPG, A2C, DQN, TD3
@@ -12,7 +12,8 @@ from stable_baselines3.common.callbacks import CheckpointCallback
 # scenario = np.ones(shape=(1, 200, 40))
 # scenario[0, 100, 20:] = 1
 
-modelname = 'SAC'
+modelname = 'PPO'
+
 cuda = '0'
 # coef_power = 0.01
 # param = 'AdvSpdRL_DDPG_3500000_steps'
@@ -26,7 +27,7 @@ env = pickle.load(open(os.path.join('params', f'{modelname}{cuda}', 'env.pkl'), 
 model = globals()[modelname]("MlpPolicy", env, verbose=1)
 list_of_files = glob.glob(os.path.join('params', f'{modelname}{cuda}/*'))
 latest_file = max(list_of_files, key=os.path.getmtime)
-model = model.load(latest_file)
+# model = model.load(latest_file)
 # env = env
 
 ob = env.reset()
@@ -42,10 +43,19 @@ while not episode_over:
     print(action)
     ob, reward, episode_over, info = env.step(action)
     ob_list.append([env.vehicle.position, env.vehicle.velocity, env.vehicle.acceleration, env.timestep, reward])
-    env.render()
+    # env.render(visible=True)
+    env.car_moving(ob_list)
     # input()
 
+
+# print(ob_list)
 print(sum([x[4] for x in ob_list]))
-env.render(info_show=True)
-input()
-env.viewer.close()
+# env.car_moving(ob_list)
+env.make_gif()
+env.info_graph(ob_list)\
+# input()
+# env.viewer.close()
+
+
+
+

@@ -3,8 +3,10 @@ import numpy as np
 from gym import spaces
 import matplotlib
 # matplotlib.use('Agg')
+
+import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
-from PIL import Image
+import matplotlib.animation as mpani
 
 class Vehicle(object):
     def __init__(self):
@@ -15,36 +17,6 @@ class Vehicle(object):
         self.acceleration = 0
         self.jerk = 0
         self.action_limit_penalty = 1
-        self.actiongap = 0
-
-
-class SectionMaxSpeed(object):
-    def __init__(self, track_length=500, unit_length=100, min_speed=30, max_speed=50):
-        assert(min_speed <= max_speed)
-        assert(unit_length*2 <= track_length)
-
-        self.track_length = track_length
-        self.unit_length = unit_length
-        self.min_speed = min_speed/3.6
-        self.max_speed = max_speed/3.6
-
-        self.num_section = int(self.track_length / self.unit_length)
-        assert(self.num_section > 0)
-        self.section_max_speed = self.min_speed + np.random.random(size=self.num_section+1) * (self.max_speed - self.min_speed)
-
-    def get_cur_max_speed(self, x):
-        return self.section_max_speed[int(x/self.unit_length)]
-
-    def get_next_max_speed(self, x):
-        i = int(x/self.unit_length)
-        if i+1 < self.num_section-1:
-            return self.section_max_speed[i+1]
-        else:
-            return self.max_speed
-
-    def get_distance_to_next_section(self, x):
-        i = int(x/self.unit_length)
-        return (i+1) * self.unit_length - x
 
 
 class TrafficSignal(object):
@@ -99,9 +71,7 @@ class TrafficSignal(object):
 
 
 class AdvSpdEnv(gym.Env):
-
-    def __init__(self, dt=0.1, track_length=500.0, acc_max=5, acc_min=-5, speed_max=100.0/3.6, dec_th=-3, stop_th=2, reward_coef=[1, 10, 1, 0.01, 0, 1, 1, 1], timelimit=2400, unit_length=100):
-        png_list = []
+    def __init__(self, dt=0.1, track_length=500.0, acc_max=5, acc_min=-5, speed_max=50.0/3.6, dec_th=-3, stop_th=2, reward_coef=[1, 10, 1, 0.01, 0, 1, 1], timelimit=2400):
 
         # num_observations = 2
         self.dt = dt
@@ -114,25 +84,18 @@ class AdvSpdEnv(gym.Env):
         self.reward_coef = reward_coef
         # [-reward_norm_velocity, -reward_shock, -reward_jerk, -reward_power, -penalty_travel_time]
         self.timelimit = timelimit
-        self.unit_length = unit_length
 
         self.action_space = spaces.Box(low=acc_min, high=acc_max, shape=[1, ])
         self.reset()
 
         min_states = np.array([0.0,  # position
                                0.0,  # velocity
-                               0.0,  # cur_max_speed
-                               0.0,  # next_max_speed
-                               0.0,  # distance to next section
                                0.0,  # signal location
                                0.0,  # green time start
                                0.0  # green time end
                                ])
         max_states = np.array([self.track_length*2,  # position
-                               self.speed_max,  # velocity
-                               self.speed_max,  # cur_max_speed
-                               self.speed_max,  # next_max_speed
-                               self.unit_length,  # distance to next section
+                               speed_max,  # velocity
                                self.track_length*2,   # signal location
                                self.timelimit*2,   # green time start
                                self.timelimit*2  # green time end
@@ -141,7 +104,6 @@ class AdvSpdEnv(gym.Env):
         self.observation_space = spaces.Box(low=min_states,
                                             high=max_states)
 
-        # self.png_list = []
         # self.scenario = scenario
         self.viewer = None
         pass
@@ -206,9 +168,6 @@ class AdvSpdEnv(gym.Env):
         # if self.vehicle.position < self.signal.location:
         self.state = [self.vehicle.position,
                       self.vehicle.velocity,
-                      self.section.get_cur_max_speed(self.vehicle.position),
-                      self.section.get_next_max_speed(self.vehicle.position),
-                      self.section.get_distance_to_next_section(self.vehicle.position),
                       self.signal.location,
                       self.signal.get_greentime(int(self.timestep*self.dt))[0] / self.dt,
                       self.signal.get_greentime(int(self.timestep*self.dt))[1] / self.dt]
@@ -224,12 +183,15 @@ class AdvSpdEnv(gym.Env):
 
         self.vehicle = Vehicle()
         self.signal = TrafficSignal()
-        self.section = SectionMaxSpeed(self.track_length)
 
         self.timestep = 0
         self.violation = False
 
-        self.state = self._get_state()
+        self.state = [self.vehicle.position,
+                      self.vehicle.velocity,
+                      self.signal.location,
+                      self.signal.get_greentime(int(self.timestep*self.dt))[0],
+                      self.signal.get_greentime(int(self.timestep*self.dt))[1]]
 
         self.reward = 0
         self.done = False
@@ -271,7 +233,7 @@ class AdvSpdEnv(gym.Env):
                                      rel_anchor_y=0,
                                      batch=self.viewer.batch,
                                      group=self.viewer.background)
-            finish.position = (zero_x + scale_x * self.track_length,
+            finish.position = (zero_x + scale_x * 500,
                                clearance_y)
             self.viewer.components['finish'] = finish
             fname = os.path.join(rel_dir, 'car_80x40.png')
@@ -323,7 +285,6 @@ class AdvSpdEnv(gym.Env):
         self.viewer.history['reward'].append(np.array(self._get_reward()).dot(np.array(self.reward_coef)))
         self.viewer.history['reward_power'].append(self._get_reward()[3])
 
-
         if info_show:
             # info figures
 
@@ -336,14 +297,11 @@ class AdvSpdEnv(gym.Env):
                     self.viewer.history['velocity'],
                     lw=2,
                     color='k')
-            for i in range(self.section.num_section):
-                from_x = i * self.section.unit_length
-                to_x = (i+1) * self.section.unit_length
-                ax.plot([from_x, to_x],
-                        [self.section.get_cur_max_speed(from_x)*3.6, self.section.get_cur_max_speed(from_x)*3.6],
-                        lw=1.5,
-                        color='r')
-
+            # ax.plot(self.viewer.history['position'],
+            #         self.viewer.history['speed_limit'],
+            #         lw=1.5,
+            #         ls='--',
+            #         color='r')
             ax.set_xlabel('Position in m')
             ax.set_ylabel('Velocity in km/h')
             ax.set_xlim(
@@ -428,10 +386,15 @@ class AdvSpdEnv(gym.Env):
         mode = None
         # self.viewer.activate()
         return self.viewer.render(return_rgb_array=mode == 'rgb_array', visible=visible)
+        # import time
+        # input()
+        # self.viewer.close()
+
+        # pass
+        # print(f"position = {self.vehicle.position:.3f} || speed = {self.vehicle.velocity:.3f}")
 
     def _take_action(self, action):
         applied_action = action
-        self.vehicle.actiongap = action
 
         max_acc = self.calculate_max_acceleration()
         if max_acc < action:
@@ -440,10 +403,8 @@ class AdvSpdEnv(gym.Env):
         if self.vehicle.velocity + applied_action * self.dt < 0:
             applied_action = - self.vehicle.velocity / self.dt
 
-        self.vehicle.jerk = abs(applied_action - self.vehicle.acceleration) / self.dt
+        self.vehicle.jerk = (applied_action - self.vehicle.acceleration) / self.dt
         self.vehicle.acceleration = applied_action
-
-        self.vehicle.actiongap -= applied_action
 
         assert(np.round(self.vehicle.velocity + applied_action * self.dt, -5) >= 0)
         self.vehicle.velocity = self.vehicle.velocity + applied_action * self.dt
@@ -451,15 +412,15 @@ class AdvSpdEnv(gym.Env):
         # self.vehicle.action_limit_penalty = abs(applied_action / action)
 
     def _get_reward(self):
-        max_speed = self.section.get_cur_max_speed(self.vehicle.position)
+        max_speed = self.speed_max
         reward_norm_velocity = np.abs((self.vehicle.velocity) - max_speed)
         reward_norm_velocity /= max_speed
 
-        reward_jerk = np.abs(self.vehicle.jerk)
+        reward_jerk = self.vehicle.jerk
         jerk_max = (self.acc_max - self.acc_min) / self.dt
         reward_jerk /= jerk_max
 
-        reward_shock = 1 if self.vehicle.velocity > self.section.get_cur_max_speed(self.vehicle.position) else 0
+        reward_shock = 1 if self.vehicle.velocity > max_speed else 0
         penalty_signal_violation = 1 if self.violation else 0
         # penalty_action_limit = self.vehicle.action_limit_penalty if self.vehicle.action_limit_penalty != 1 else 0
         # penalty_moving_backward = 1000 if self.vehicle.velocity < 0 else 0
@@ -467,14 +428,13 @@ class AdvSpdEnv(gym.Env):
 
         reward_remaining_distance = (self.track_length - self.vehicle.position) / self.track_length
 
-        reward_action_gap = self.vehicle.actiongap / (self.acc_max - self.acc_min)
         # reward_finishing = 1000 if self.vehicle.position > 490 else 0
         # reward_power = self.energy_consumption() * self.dt / 75 * 0.5
 
         power = -self.energy_consumption()
         reward_power = self.vehicle.velocity / power if (power > 0 and self.vehicle.velocity >= 0) else 0
 
-        return [-reward_norm_velocity, -reward_shock, -reward_jerk, -reward_power, -penalty_travel_time, -penalty_signal_violation, -reward_remaining_distance, -reward_action_gap]
+        return [-reward_norm_velocity, -reward_shock, -reward_jerk, -reward_power, -penalty_travel_time, -penalty_signal_violation, -reward_remaining_distance]
         # return -reward_norm_velocity - \
         #     reward_shock - \
         #     reward_jerk - \
@@ -486,10 +446,6 @@ class AdvSpdEnv(gym.Env):
 
         dec_th = self.dec_th
         max_acc = self.acc_max
-
-        spd_max_acc = (self.speed_max - self.vehicle.velocity)/self.dt
-        max_acc = spd_max_acc if max_acc > spd_max_acc else max_acc
-
         if not self.signal.is_green(int(self.timestep * self.dt)):
 
             if self.vehicle.position < self.signal.location:
@@ -524,12 +480,7 @@ class AdvSpdEnv(gym.Env):
 
     def info_graph(self, ob_list):
         # info figures
-        plt.rc('font', size=15)
-        plt.rc('axes', titlesize=22)
-        plt.rc('axes', labelsize=15)
-        plt.rc('xtick', labelsize=15)
-        plt.rc('ytick', labelsize=15)
-        fig = plt.figure(figsize=(15, 10))
+        fig = plt.figure()
         fig.clf()
         pos = [ob[0] for ob in ob_list]
         vel = [ob[1] for ob in ob_list]
@@ -538,26 +489,23 @@ class AdvSpdEnv(gym.Env):
         reward = [ob[4] for ob in ob_list]
 
         # pos-vel
-        ax1 = fig.add_subplot(221)
+        ax1 = fig.add_subplot(151)
         ax1.plot(pos, vel, lw=2, color='k')
-        ax1.set_title('x-v graph')
         ax1.set_xlabel('Position in m')
         ax1.set_ylabel('Velocity in km/h')
-        ax1.set_xlim((0.0, self.track_length))
+        ax1.set_xlim((0.0, max(500, pos[-1] + (500 - pos[-1]) % 500)))
         ax1.set_ylim((0.0, 130))
 
         # pos-acc
-        ax2 = fig.add_subplot(222)
+        ax2 = fig.add_subplot(152)
         ax2.plot(pos, acc, lw=2, color='k')
-        ax2.set_title('x-a graph')
         ax2.set_xlabel('Position in m')
         ax2.set_ylabel('Acceleration in m/s²')
-        ax2.set_xlim((0.0, self.track_length))
+        ax2.set_xlim((0.0, max(500, pos[-1] + (500 - pos[-1]) % 500)))
         ax2.set_ylim((self.acc_min, self.acc_max))
-        # ax2.set_ylim((np.min(acc), np.max(acc)))
 
         # x-t with signal phase
-        ax3 = fig.add_subplot(223)
+        ax3 = fig.add_subplot(153)
         ax3.plot([x*self.dt for x in range(len(pos))], pos, lw=2, color='k')
         xlim_max = self.timelimit
         for i in range(xlim_max):
@@ -571,76 +519,19 @@ class AdvSpdEnv(gym.Env):
                      color=signal_color
                      )
         green_search_xlim = int(max(100, len(pos)) * self.dt) + 1
-        ax3.set_title('x-t graph')
+
         ax3.set_xlabel('Time in s')
         ax3.set_ylabel('Position in m')
         ax3.set_xlim((0.0, green_search_xlim))
         ax3.set_ylim((0, self.track_length))
 
         # t-reward
-        ax4 = fig.add_subplot(224)
+        ax4 = fig.add_subplot(154)
         ax4.plot([x*self.dt for x in range(len(reward))], reward, lw=2, color='k')
         xlim_max = int(max(100, len(pos)) * self.dt) + 1
-        ax4.set_title('reward-t graph')
+
         ax4.set_xlabel('Time in s')
         ax4.set_ylabel('Reward')
         ax4.set_xlim((0.0, xlim_max))
-        ax4.set_ylim((-3.0, 3.0))
+        ax4.set_ylim((np.min(reward)-1, np.max(reward)+1))
 
-        fig.tight_layout()
-
-        # return fig
-        plt.savefig('./simulate_gif/info_graph.png')
-
-    def car_moving(self, ob_list):
-        pos = [int(np.round(ob[0], 0)) for ob in ob_list]
-        time = [ob[3] for ob in ob_list]
-
-        car_filename = "./util/assets/track/img/car_80x40.png"
-        signal_filename = "./util/assets/track/img/sign_60x94.png"
-        start_finish_filename = "./util/assets/track/img/start_finish_30x100.png"
-
-        car = Image.open(car_filename)
-        signal = Image.open(signal_filename)
-        start = Image.open(start_finish_filename)
-        finish = Image.open(start_finish_filename)
-
-        canvas = (2000, 400)
-        clearence = (0, 200)
-        zero_x = 150
-        scale_x = 10
-        signal_position = 300
-
-        start_position = (zero_x - int(scale_x * (pos[-1])), canvas[1] - clearence[1])
-        finish_position = (zero_x + int(scale_x * (self.track_length - pos[-1])), canvas[1] - clearence[1])
-        signal_position = (zero_x + int(scale_x * (self.signal.location - pos[-1])), canvas[1] - clearence[1] - 50)
-        car_position = (zero_x - 80, canvas[1] - clearence[1] + 30)
-
-        background = Image.new('RGB', canvas, (255,255,255))
-        background.paste(start, start_position)
-        background.paste(finish, finish_position)
-        background.paste(signal, signal_position, signal)
-        background.paste(car, car_position, car)
-        
-        # self.info_graph(ob_list)
-        # graph = Image.open('./simulate_gif/graph_{}.png'.format(time[-1]))
-        # background.paste(graph, (250, 50))
-        
-        # if time[-1] < 10:
-        # background.save('./simulate_gif/{}.png'.format(time[-1]))
-        self.png_list.append(background)
-
-    def make_gif(self):
-        import os
-        import glob
-        self.png_list[0].save('simulate_gif/simulation.gif', save_all=True, append_images=self.png_list[1:], optimize=False, duration=30, loop=1)
-        [os.remove(f) for f in glob.glob("./simulate_gif/*.png")]
-        
-
-# def fig2img(fig):
-#     import io
-#     buf = io.BytesIO()
-#     fig.savefig(buf)
-#     buf.seek(0)
-#     img = Image.open(buf)
-#     return img
