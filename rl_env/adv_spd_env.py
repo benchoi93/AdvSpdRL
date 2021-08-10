@@ -265,7 +265,7 @@ class AdvSpdEnv(gym.Env):
                                      rel_anchor_y=0,
                                      batch=self.viewer.batch,
                                      group=self.viewer.background)
-            finish.position = (zero_x + scale_x * 500,
+            finish.position = (zero_x + scale_x * self.track_length,
                                clearance_y)
             self.viewer.components['finish'] = finish
             fname = os.path.join(rel_dir, 'car_80x40.png')
