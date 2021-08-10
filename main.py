@@ -59,7 +59,8 @@ env = gym.wrappers.TimeLimit(env, max_episode_steps=args.max_episode_steps)
 
 model = args.model
 checkpoint_callback = CheckpointCallback(save_freq=100000, save_path=f"./params/{model}{int(cuda)}", name_prefix=f"AdvSpdRL_{model}")
-gif_callback = GIFCallback(save_freq=10, save_path=f"./simulate_gif/{model}{int(cuda)}", name_prefix=f"AdvSpdRL_{model}")
+gif_callback = GIFCallback(env=env, save_freq=100000, save_path=os.path.join('simulate_gif', f'{model}{int(cuda)}'), name_prefix=f"AdvSpdRL_{model}")
+
 
 directory = f'params/{model}{int(cuda)}'
 if not os.path.exists(directory):
