@@ -4,7 +4,7 @@ import pickle
 import matplotlib.pyplot as plt
 import time
 from rl_env.adv_spd_env import AdvSpdEnv
-
+from PIL import Image
 import numpy as np
 
 from stable_baselines3 import PPO, SAC, DDPG, A2C, DQN, TD3
@@ -42,11 +42,19 @@ while not episode_over:
     # print(action)
     ob, reward, episode_over, info = env.step(action)
     ob_list.append([env.vehicle.position, env.vehicle.velocity, env.vehicle.acceleration, env.timestep, reward])
-    env.render(visible=False)
+    # env.render(visible=True)
+    env.car_moving(ob_list)
     # input()
 
+
+# print(ob_list)
 print(sum([x[4] for x in ob_list]))
-env.render(info_show=True)
+# env.car_moving(ob_list)
+env.make_gif()
+env.info_graph(ob_list)\
 # input()
-env.viewer.close()
+# env.viewer.close()
+
+
+
 

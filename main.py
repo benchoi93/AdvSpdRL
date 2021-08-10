@@ -4,7 +4,6 @@ import os
 from torch import nn
 from torch._C import device
 from rl_env.adv_spd_env import AdvSpdEnv
-
 import numpy as np
 
 from stable_baselines3 import PPO, SAC, DDPG, A2C, DQN, TD3
@@ -36,7 +35,7 @@ if args.activation == 'relu':
 elif args.activation == 'tanh':
     activation_fn = nn.Tanh
 else:
-    print("wrong inpu")
+    print("wrong input")
 
 
 env = AdvSpdEnv(reward_coef=[args.coef_vel,
@@ -65,6 +64,8 @@ model = globals()[model]("MlpPolicy", env, verbose=1, tensorboard_log=f"log/{mod
 model.learn(total_timesteps=1000000000, callback=checkpoint_callback)
 model.save("params/AdvSpdRL_PPO")
 
+
+
 # checkpoint_callback = CheckpointCallback(save_freq=10000, save_path="./params/SAC", name_prefix="AdvSpdRL_SAC")
 
 # model = SAC("MlpPolicy", env, verbose=1, tensorboard_log="log/SAC/", device='cuda')
@@ -82,3 +83,5 @@ model.save("params/AdvSpdRL_PPO")
 #     ob, reward, episode_over, info = env.step(action)
 #     ob_list.append(ob)
 #     env.render()
+
+
