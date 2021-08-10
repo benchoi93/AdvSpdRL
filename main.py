@@ -18,7 +18,7 @@ import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--cuda', default='0', type=str)
-parser.add_argument('--model', default='SAC', type=str)
+parser.add_argument('--model', default='PPO', type=str)
 parser.add_argument('--coef-vel', default=1, type=float, help="add penalty to difference between current speed and speed limit")
 parser.add_argument('--coef-shock', default=1, type=float, help="add penalty to exceeding speed limit")
 parser.add_argument('--coef-jerk', default=0, type=float, help="add penalty to large jerk")

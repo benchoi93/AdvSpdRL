@@ -12,6 +12,9 @@ from stable_baselines3.common.callbacks import CheckpointCallback
 # scenario = np.ones(shape=(1, 200, 40))
 # scenario[0, 100, 20:] = 1
 
+import time
+start = time.time()
+
 modelname = 'PPO'
 
 cuda = '0'
@@ -35,27 +38,32 @@ episode_over = False
 ob_list = []
 
 print(env.reward_coef)
-
+check_start = 1
+check_finish = 0
 while not episode_over:
     # action = np.array(env.get_random_action())
     action, _ = model.predict(ob)
     # action = np.array(min(5, (50/3.6 - ob[1]) / env.dt))
-    print(action)
+    # print(action)
     ob, reward, episode_over, info = env.step(action)
     ob_list.append([env.vehicle.position, env.vehicle.velocity, env.vehicle.acceleration, env.timestep, reward])
     # env.render(visible=True)
-    env.car_moving(ob_list)
+    env.car_moving(ob_list, check_start, check_finish)
+    check_start = 0
+
     # input()
 
-
+check_finish = 1
 # print(ob_list)
 print(sum([x[4] for x in ob_list]))
 # env.car_moving(ob_list)
+env.car_moving(ob_list, check_start, check_finish)
+env.info_graph(ob_list)
 env.make_gif()
-env.info_graph(ob_list)\
 # input()
 # env.viewer.close()
 
+print("execution time: {}".format(np.round(time.time()-start), 5))
 
 
 

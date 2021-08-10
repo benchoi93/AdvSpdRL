@@ -1,10 +1,11 @@
 import gym
 import numpy as np
+import math
 from gym import spaces
 import matplotlib
 # matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 
 class Vehicle(object):
     def __init__(self):
@@ -544,7 +545,7 @@ class AdvSpdEnv(gym.Env):
         ax1.set_xlabel('Position in m')
         ax1.set_ylabel('Velocity in km/h')
         ax1.set_xlim((0.0, self.track_length))
-        ax1.set_ylim((0.0, 130))
+        ax1.set_ylim((0.0, 50))
 
         # pos-acc
         ax2 = fig.add_subplot(222)
@@ -570,29 +571,29 @@ class AdvSpdEnv(gym.Env):
                      [self.signal.location] * len(range(int(i/self.dt), int((i + 1)//self.dt)+1)),
                      color=signal_color
                      )
-        green_search_xlim = int(max(100, len(pos)) * self.dt) + 1
+        # green_search_xlim = int(max(100, len(pos)) * self.dt) + 1
         ax3.set_title('x-t graph')
         ax3.set_xlabel('Time in s')
         ax3.set_ylabel('Position in m')
-        ax3.set_xlim((0.0, green_search_xlim))
+        ax3.set_xlim((0.0, math.ceil(time[-1]/100)*10))
         ax3.set_ylim((0, self.track_length))
 
         # t-reward
         ax4 = fig.add_subplot(224)
         ax4.plot([x*self.dt for x in range(len(reward))], reward, lw=2, color='k')
-        xlim_max = int(max(100, len(pos)) * self.dt) + 1
+        # xlim_max = int(max(100, len(pos)) * self.dt) + 1
         ax4.set_title('reward-t graph')
         ax4.set_xlabel('Time in s')
         ax4.set_ylabel('Reward')
-        ax4.set_xlim((0.0, xlim_max))
+        ax4.set_xlim((0.0, math.ceil(time[-1]/100)*10))
         ax4.set_ylim((-3.0, 3.0))
 
         fig.tight_layout()
-
+        
         # return fig
         plt.savefig('./simulate_gif/info_graph.png')
 
-    def car_moving(self, ob_list):
+    def car_moving(self, ob_list, check_start, check_finish, combine=False):
         pos = [int(np.round(ob[0], 0)) for ob in ob_list]
         time = [ob[3] for ob in ob_list]
 
@@ -605,7 +606,8 @@ class AdvSpdEnv(gym.Env):
         start = Image.open(start_finish_filename)
         finish = Image.open(start_finish_filename)
 
-        canvas = (1500, 400)
+        canvas = (1500, 500)
+        
         clearence = (0, 200)
         zero_x = 150
         scale_x = 10
@@ -616,32 +618,52 @@ class AdvSpdEnv(gym.Env):
         signal_position = (zero_x + int(scale_x * (self.signal.location - pos[-1])), canvas[1] - clearence[1] - 50)
         car_position = (zero_x - 80, canvas[1] - clearence[1] + 30)
         
-        background = Image.new('RGB', canvas, (255,255,255))
+        font = ImageFont.truetype('arial.ttf', 20)
+        background = Image.new('RGB', canvas, (255, 255, 255))
+        draw = ImageDraw.Draw(background)
+        for i in range(int(self.track_length//50+1)):
+            draw.text((zero_x - int(scale_x * (pos[-1])) + int(scale_x*50*i), canvas[1] - 90), "{}m".format(50*i), (0, 0, 0), font)
+        draw.line((0, canvas[1]-100, 1500, canvas[1]-100), (0, 0, 0), width=5)
         background.paste(start, start_position)
         background.paste(finish, finish_position)
+        signal_draw = ImageDraw.Draw(signal)
+        if self.signal.is_green(int(self.timestep * self.dt)):
+            signal_draw.ellipse((0,0,60,60,), (0, 255, 0))  # green signal
+        else:
+            signal_draw.ellipse((0,0,60,60,), (255, 0, 0))  # red signal
         background.paste(signal, signal_position, signal)
-        if self.signal.is_green()
         background.paste(car, car_position, car)
         
         # self.info_graph(ob_list)
         # graph = Image.open('./simulate_gif/graph_{}.png'.format(time[-1]))
-        # background.paste(graph, (250, 50))
+
+        if combine == True:
+            graph = fig2img(self.info_graph(ob_list))
+            plt.close('all')
+            background.paste(graph, (0, 50))
+            
+        if check_start == 1 or check_finish == 1:
+                for i in range(100):
+                    self.png_list.append(background)
+                    
+        else:
+            self.png_list.append(background)
         
-        # if time[-1] < 10:
-        # background.save('./simulate_gif/{}.png'.format(time[-1]))
-        self.png_list.append(background)
+        # print(time[-1])
+
+            
 
     def make_gif(self):
         import os
         import glob
-        self.png_list[0].save('simulate_gif/simulation.gif', save_all=True, append_images=self.png_list[1:], optimize=False, duration=30, loop=1)
-        [os.remove(f) for f in glob.glob("./simulate_gif/*.png")]
+        self.png_list[0].save('simulate_gif/simulation.gif', save_all=True, append_images=self.png_list[1:], optimize=False, duration=20, loop=1)
+        # [os.remove(f) for f in glob.glob("./simulate_gif/*.png")]
         
 
-# def fig2img(fig):
-#     import io
-#     buf = io.BytesIO()
-#     fig.savefig(buf)
-#     buf.seek(0)
-#     img = Image.open(buf)
-#     return img
+def fig2img(fig):
+    import io
+    buf = io.BytesIO()
+    fig.savefig(buf)
+    buf.seek(0)
+    img = Image.open(buf)
+    return img
