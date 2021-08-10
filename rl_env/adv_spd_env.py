@@ -99,7 +99,7 @@ class TrafficSignal(object):
 
 
 class AdvSpdEnv(gym.Env):
-
+    png_list = []
     def __init__(self, dt=0.1, track_length=500.0, acc_max=5, acc_min=-5, speed_max=100.0/3.6, dec_th=-3, stop_th=2, reward_coef=[1, 10, 1, 0.01, 0, 1, 1, 1], timelimit=2400, unit_length=100):
         png_list = []
 
@@ -605,7 +605,7 @@ class AdvSpdEnv(gym.Env):
         start = Image.open(start_finish_filename)
         finish = Image.open(start_finish_filename)
 
-        canvas = (2000, 400)
+        canvas = (1500, 400)
         clearence = (0, 200)
         zero_x = 150
         scale_x = 10
@@ -615,11 +615,12 @@ class AdvSpdEnv(gym.Env):
         finish_position = (zero_x + int(scale_x * (self.track_length - pos[-1])), canvas[1] - clearence[1])
         signal_position = (zero_x + int(scale_x * (self.signal.location - pos[-1])), canvas[1] - clearence[1] - 50)
         car_position = (zero_x - 80, canvas[1] - clearence[1] + 30)
-
+        
         background = Image.new('RGB', canvas, (255,255,255))
         background.paste(start, start_position)
         background.paste(finish, finish_position)
         background.paste(signal, signal_position, signal)
+        if self.signal.is_green()
         background.paste(car, car_position, car)
         
         # self.info_graph(ob_list)

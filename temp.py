@@ -18,8 +18,8 @@ signal = Image.open(signal_filename)
 start = Image.open(start_finish_filename)
 finish = Image.open(start_finish_filename)
 
-canvas = (2000, 500)
-clearence = (80, 200)
+canvas = (1500, 400)
+clearence = (0, 200)
 zero_x = 150
 scale_x = 10
 track_length = 500
