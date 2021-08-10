@@ -1,27 +1,68 @@
 from PIL import Image, ImageDraw
+import matplotlib
+# matplotlib.use('Agg')
 
-# size of image
-canvas = (400, 300)
+import matplotlib.image as mpimg
+import matplotlib.pyplot as plt
+import matplotlib.animation as mpani
+import numpy as np
+import time
+ob_list = [[1,1,1,1,1]]
+t1 = time.time()
+        # info figures
+plt.rc('font', size=15)
+plt.rc('axes', titlesize=22)
+plt.rc('axes', labelsize=15)
+plt.rc('xtick', labelsize=15)
+plt.rc('ytick', labelsize=15)
+fig = plt.figure(figsize=(15, 10))
+fig.clf()
+pos = [ob[0] for ob in ob_list]
+vel = [ob[1] for ob in ob_list]
+acc = [ob[2] for ob in ob_list]
+step = [ob[3] for ob in ob_list]
+reward = [ob[4] for ob in ob_list]
 
-# scale ration
-scale = 5
-thumb = canvas[0]/scale, canvas[1]/scale
+# pos-vel
+ax1 = fig.add_subplot(221)
+ax1.plot(pos, vel, lw=2, color='k')
+ax1.set_title('x-v graph')
+ax1.set_xlabel('Position in m')
+ax1.set_ylabel('Velocity in km/h')
+ax1.set_xlim((0.0, 500))
+ax1.set_ylim((0.0, 50))
 
-# rectangles (width, height, left position, top position)
-frames = [(50, 50, 5, 5), (60, 60, 100, 50), (100, 100, 205, 120)]
+# pos-acc
+ax2 = fig.add_subplot(222)
+ax2.plot(pos, acc, lw=2, color='k')
+ax2.set_title('x-a graph')
+ax2.set_xlabel('Position in m')
+ax2.set_ylabel('Acceleration in m/s²')
+ax2.set_xlim((0.0, 500))
+ax2.set_ylim((-3, 3))
+# ax2.set_ylim((np.min(acc), np.max(acc)))
 
-# init canvas
-im = Image.new('RGBA', canvas, (255, 255, 255, 255))
-draw = ImageDraw.Draw(im)
+# x-t with signal phase
+ax3 = fig.add_subplot(223)
+ax3.plot([1],[1], lw=2, color='k')
 
-# draw rectangles
-for frame in frames:
-    x1, y1 = frame[2], frame[3]
-    x2, y2 = frame[2] + frame[0], frame[3] + frame[1]
-    draw.rectangle([x1, y1, x2, y2], outline=(0, 0, 0, 255))
+ax3.set_title('x-t graph')
+ax3.set_xlabel('Time in s')
+ax3.set_ylabel('Position in m')
+ax3.set_xlim((0.0, 500))
+ax3.set_ylim((0, 500))
 
-# make thumbnail
-im.thumbnail(thumb)
+# t-reward
+ax4 = fig.add_subplot(224)
+ax4.plot([1],[1], lw=2, color='k')
 
-# save image
-im.save('im.png')
+ax4.set_title('x-t graph')
+ax4.set_xlabel('Time in s')
+ax4.set_ylabel('Position in m')
+ax4.set_xlim((0.0, 500))
+ax4.set_ylim((0, 500))
+
+# fig.tight_layout()
+plt.subplots_adjust(hspace=0.35)
+
+plt.savefig('./simulate_gif/info_graph.png')

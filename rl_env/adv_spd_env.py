@@ -1,6 +1,10 @@
 import gym
 import numpy as np
+import os
+import io
+import glob
 import math
+import time
 from gym import spaces
 import matplotlib
 # matplotlib.use('Agg')
@@ -58,11 +62,11 @@ class TrafficSignal(object):
         # self.location = min_location + np.random.rand() * (max_location - min_location)
         self.timetable = np.ones(shape=[self.cycle_length]) * -1
 
-        offset = 40
+        self.offset = 40
         # offset = np.random.randint(0, self.cycle_length)
 
         for i in range(self.cycle_length):
-            cur_idx = (i+offset) % self.cycle_length
+            cur_idx = (i+self.offset) % self.cycle_length
             self.timetable[cur_idx] = 1 if i < self.phase_length[True] else 0
             # print(cur_idx)
 
@@ -524,6 +528,7 @@ class AdvSpdEnv(gym.Env):
         return - power * gain  # kilo Watts (KW)
 
     def info_graph(self, ob_list):
+        t1 = time.time()
         # info figures
         plt.rc('font', size=15)
         plt.rc('axes', titlesize=22)
@@ -535,7 +540,7 @@ class AdvSpdEnv(gym.Env):
         pos = [ob[0] for ob in ob_list]
         vel = [ob[1] for ob in ob_list]
         acc = [ob[2] for ob in ob_list]
-        time = [ob[3] for ob in ob_list]
+        step = [ob[3] for ob in ob_list]
         reward = [ob[4] for ob in ob_list]
 
         # pos-vel
@@ -561,21 +566,31 @@ class AdvSpdEnv(gym.Env):
         ax3 = fig.add_subplot(223)
         ax3.plot([x*self.dt for x in range(len(pos))], pos, lw=2, color='k')
         xlim_max = self.timelimit
-        for i in range(xlim_max):
-            if self.signal.is_green(i):
-                signal_color = 'g'
-            else:
-                signal_color = 'r'
+        t5 = time.time()
+        # for i in range(xlim_max):
+        #     if self.signal.is_green(i):
+        #         signal_color = 'g'
+        #     else:
+        #         signal_color = 'r'
 
-            ax3.plot([x*self.dt for x in range(int((i)/self.dt), int((i + 1)//self.dt)+1)],
-                     [self.signal.location] * len(range(int(i/self.dt), int((i + 1)//self.dt)+1)),
-                     color=signal_color
-                     )
+        #     ax3.plot([x*self.dt for x in range(int((i)/self.dt), int((i + 1)//self.dt)+1)],
+        #              [self.signal.location] * len(range(int(i/self.dt), int((i + 1)//self.dt)+1)),
+        #              color=signal_color
+        #              )
+        green = self.signal.phase_length[True]
+        red = self.signal.phase_length[False]
+        cycle = green+red
+        for i in range(10):
+            ax3.plot(np.linspace(cycle*i-(cycle-self.signal.offset), cycle*i-(cycle-self.signal.offset)+green, green*10), 
+                                 [self.signal.location]*(green*10), lw=2, color='g')
+            ax3.plot(np.linspace(cycle*i-(cycle-self.signal.offset)+green, cycle*i-(cycle-self.signal.offset)+cycle, red*10), 
+                                 [self.signal.location]*(red*10), lw=2, color='r')
+        print("signal: {}".format(time.time()-t5))
         # green_search_xlim = int(max(100, len(pos)) * self.dt) + 1
         ax3.set_title('x-t graph')
         ax3.set_xlabel('Time in s')
         ax3.set_ylabel('Position in m')
-        ax3.set_xlim((0.0, math.ceil(time[-1]/100)*10))
+        ax3.set_xlim((0.0, math.ceil(step[-1]/100)*10))
         ax3.set_ylim((0, self.track_length))
 
         # t-reward
@@ -585,17 +600,25 @@ class AdvSpdEnv(gym.Env):
         ax4.set_title('reward-t graph')
         ax4.set_xlabel('Time in s')
         ax4.set_ylabel('Reward')
-        ax4.set_xlim((0.0, math.ceil(time[-1]/100)*10))
+        ax4.set_xlim((0.0, math.ceil(step[-1]/100)*10))
         ax4.set_ylim((-3.0, 3.0))
 
-        fig.tight_layout()
-        
-        # return fig
+        t0 = time.time()
+        # fig.tight_layout()
+        plt.subplots_adjust(hspace=0.35)
+        print("tight: {}".format(time.time()-t0))
+
+        print("make fig: {}".format(time.time()-t1))
+
         plt.savefig('./simulate_gif/info_graph.png')
 
+        return fig
+        
+
     def car_moving(self, ob_list, check_start, check_finish, combine=False):
+        t2 = time.time()
         pos = [int(np.round(ob[0], 0)) for ob in ob_list]
-        time = [ob[3] for ob in ob_list]
+        step = [ob[3] for ob in ob_list]
 
         car_filename = "./util/assets/track/img/car_80x40.png"
         signal_filename = "./util/assets/track/img/sign_60x94.png"
@@ -618,7 +641,10 @@ class AdvSpdEnv(gym.Env):
         signal_position = (zero_x + int(scale_x * (self.signal.location - pos[-1])), canvas[1] - clearence[1] - 50)
         car_position = (zero_x - 80, canvas[1] - clearence[1] + 30)
         
-        font = ImageFont.truetype('arial.ttf', 20)
+        try:
+            font = ImageFont.truetype('arial.ttf', 20)
+        except:
+            font = ImageFont.load_default()
         background = Image.new('RGB', canvas, (255, 255, 255))
         draw = ImageDraw.Draw(background)
         for i in range(int(self.track_length//50+1)):
@@ -631,37 +657,37 @@ class AdvSpdEnv(gym.Env):
             signal_draw.ellipse((0,0,60,60,), (0, 255, 0))  # green signal
         else:
             signal_draw.ellipse((0,0,60,60,), (255, 0, 0))  # red signal
+
         background.paste(signal, signal_position, signal)
         background.paste(car, car_position, car)
-        
+
+        print("make car-moving: {}".format(time.time()-t2))
         # self.info_graph(ob_list)
         # graph = Image.open('./simulate_gif/graph_{}.png'.format(time[-1]))
 
+        t3 = time.time()
         if combine == True:
             graph = fig2img(self.info_graph(ob_list))
             plt.close('all')
             background.paste(graph, (0, 50))
-            
+            print("convert: {}".format(time.time()-t3))
+        
         if check_start == 1 or check_finish == 1:
-                for i in range(100):
-                    self.png_list.append(background)
+            for i in range(100):
+                self.png_list.append(background)
                     
         else:
             self.png_list.append(background)
         
-        # print(time[-1])
 
-            
-
-    def make_gif(self):
-        import os
-        import glob
-        self.png_list[0].save('simulate_gif/simulation.gif', save_all=True, append_images=self.png_list[1:], optimize=False, duration=20, loop=1)
-        # [os.remove(f) for f in glob.glob("./simulate_gif/*.png")]
-        
+    def make_gif(self, path="./simulate_gif/simulation.gif"):
+        print("Yeah!")
+        self.png_list[0].save(path, save_all=True, append_images=self.png_list[1:], optimize=False, duration=20, loop=1)
+    
+    def make_graphgif(self, path="./simulate_gif/simulation.gif"):
+        self.png_list[0].save(path, save_all=True, append_images=self.png_list[1:], optimize=False, duration=20, loop=1)
 
 def fig2img(fig):
-    import io
     buf = io.BytesIO()
     fig.savefig(buf)
     buf.seek(0)

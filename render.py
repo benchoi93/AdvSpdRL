@@ -41,6 +41,7 @@ print(env.reward_coef)
 check_start = 1
 check_finish = 0
 while not episode_over:
+    t = time.time()
     # action = np.array(env.get_random_action())
     action, _ = model.predict(ob)
     # action = np.array(min(5, (50/3.6 - ob[1]) / env.dt))
@@ -48,9 +49,9 @@ while not episode_over:
     ob, reward, episode_over, info = env.step(action)
     ob_list.append([env.vehicle.position, env.vehicle.velocity, env.vehicle.acceleration, env.timestep, reward])
     # env.render(visible=True)
-    env.car_moving(ob_list, check_start, check_finish)
-    check_start = 0
-
+    env.car_moving(ob_list, check_start, check_finish, combine=False)
+    print("one episode: {}".format(time.time()-t))
+    print('-------------------------------------')
     # input()
 
 check_finish = 1
