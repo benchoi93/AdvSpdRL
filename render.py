@@ -37,7 +37,6 @@ ob = env.reset()
 episode_over = False
 ob_list = []
 
-print(env.reward_coef)
 check_start = 1
 check_finish = 0
 while not episode_over:
@@ -50,21 +49,18 @@ while not episode_over:
     ob_list.append([env.vehicle.position, env.vehicle.velocity, env.vehicle.acceleration, env.timestep, reward])
     # env.render(visible=True)
     env.car_moving(ob_list, check_start, check_finish, combine=False)
-    print("one episode: {}".format(time.time()-t))
+    check_start = 0
     print('-------------------------------------')
     # input()
 
 check_finish = 1
-# print(ob_list)
-print(sum([x[4] for x in ob_list]))
-# env.car_moving(ob_list)
+
 env.car_moving(ob_list, check_start, check_finish)
-env.info_graph(ob_list)
+env.info_graph(ob_list, check_finish)
 env.make_gif()
-# input()
-# env.viewer.close()
-
+print('-------------------------------------')
+print("reward coef: ", env.reward_coef)
+print("reward: {}".format(sum([x[4] for x in ob_list])))
 print("execution time: {}".format(np.round(time.time()-start), 5))
-
-
-
+print("# of episodes: {}".format(len(ob_list)))
+print("execution time per episode: {}".format((time.time()-start)/len(ob_list)))

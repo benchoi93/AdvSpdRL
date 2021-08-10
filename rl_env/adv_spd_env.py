@@ -527,22 +527,25 @@ class AdvSpdEnv(gym.Env):
         power += M * speed * accel + M * g * Cr * speed + 0.5 * rho * A * Ca * speed ** 3
         return - power * gain  # kilo Watts (KW)
 
-    def info_graph(self, ob_list):
+    def info_graph(self, ob_list, check_finish=0):
         t1 = time.time()
-        # info figures
-        plt.rc('font', size=15)
-        plt.rc('axes', titlesize=22)
-        plt.rc('axes', labelsize=15)
-        plt.rc('xtick', labelsize=15)
-        plt.rc('ytick', labelsize=15)
-        fig = plt.figure(figsize=(15, 10))
-        fig.clf()
+
         pos = [ob[0] for ob in ob_list]
         vel = [ob[1] for ob in ob_list]
         acc = [ob[2] for ob in ob_list]
         step = [ob[3] for ob in ob_list]
         reward = [ob[4] for ob in ob_list]
 
+        # info figures
+        plt.rc('font', size=15)
+        plt.rc('axes', titlesize=22)
+        plt.rc('axes', labelsize=15)
+        plt.rc('xtick', labelsize=15)
+        plt.rc('ytick', labelsize=15)
+
+        fig = plt.figure(figsize=(15, 10)) # 여기서 에러... -> Fail to create pixmap with Tk_GetPixmap in TkImgPhotoInstanceSetSize
+        fig.clf()
+        
         # pos-vel
         ax1 = fig.add_subplot(221)
         ax1.plot(pos, vel, lw=2, color='k')
@@ -560,13 +563,12 @@ class AdvSpdEnv(gym.Env):
         ax2.set_ylabel('Acceleration in m/s²')
         ax2.set_xlim((0.0, self.track_length))
         ax2.set_ylim((self.acc_min, self.acc_max))
-        # ax2.set_ylim((np.min(acc), np.max(acc)))
 
         # x-t with signal phase
         ax3 = fig.add_subplot(223)
         ax3.plot([x*self.dt for x in range(len(pos))], pos, lw=2, color='k')
-        xlim_max = self.timelimit
-        t5 = time.time()
+        
+        # xlim_max = self.timelimit
         # for i in range(xlim_max):
         #     if self.signal.is_green(i):
         #         signal_color = 'g'
@@ -580,13 +582,11 @@ class AdvSpdEnv(gym.Env):
         green = self.signal.phase_length[True]
         red = self.signal.phase_length[False]
         cycle = green+red
-        for i in range(10):
+        for i in range(2):
             ax3.plot(np.linspace(cycle*i-(cycle-self.signal.offset), cycle*i-(cycle-self.signal.offset)+green, green*10), 
                                  [self.signal.location]*(green*10), lw=2, color='g')
             ax3.plot(np.linspace(cycle*i-(cycle-self.signal.offset)+green, cycle*i-(cycle-self.signal.offset)+cycle, red*10), 
                                  [self.signal.location]*(red*10), lw=2, color='r')
-        print("signal: {}".format(time.time()-t5))
-        # green_search_xlim = int(max(100, len(pos)) * self.dt) + 1
         ax3.set_title('x-t graph')
         ax3.set_xlabel('Time in s')
         ax3.set_ylabel('Position in m')
@@ -602,15 +602,12 @@ class AdvSpdEnv(gym.Env):
         ax4.set_ylabel('Reward')
         ax4.set_xlim((0.0, math.ceil(step[-1]/100)*10))
         ax4.set_ylim((-3.0, 3.0))
-
-        t0 = time.time()
-        # fig.tight_layout()
         plt.subplots_adjust(hspace=0.35)
-        print("tight: {}".format(time.time()-t0))
 
         print("make fig: {}".format(time.time()-t1))
 
-        plt.savefig('./simulate_gif/info_graph.png')
+        if check_finish == 1:
+            plt.savefig('./simulate_gif/info_graph.png')
 
         return fig
         
@@ -665,10 +662,10 @@ class AdvSpdEnv(gym.Env):
         # self.info_graph(ob_list)
         # graph = Image.open('./simulate_gif/graph_{}.png'.format(time[-1]))
 
-        t3 = time.time()
         if combine == True:
+            t3 = time.time()
             graph = fig2img(self.info_graph(ob_list))
-            plt.close('all')
+            plt.close()
             background.paste(graph, (0, 50))
             print("convert: {}".format(time.time()-t3))
         
@@ -681,7 +678,6 @@ class AdvSpdEnv(gym.Env):
         
 
     def make_gif(self, path="./simulate_gif/simulation.gif"):
-        print("Yeah!")
         self.png_list[0].save(path, save_all=True, append_images=self.png_list[1:], optimize=False, duration=20, loop=1)
     
     def make_graphgif(self, path="./simulate_gif/simulation.gif"):
