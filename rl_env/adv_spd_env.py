@@ -618,7 +618,11 @@ class AdvSpdEnv(gym.Env):
         signal_position = (zero_x + int(scale_x * (self.signal.location - pos[-1])), canvas[1] - clearence[1] - 50)
         car_position = (zero_x - 80, canvas[1] - clearence[1] + 30)
         
-        font = ImageFont.truetype('arial.ttf', 20)
+        try:
+            font = ImageFont.truetype('arial.ttf', 20)
+        except:
+            font = ImageFont.load_default()
+                
         background = Image.new('RGB', canvas, (255, 255, 255))
         draw = ImageDraw.Draw(background)
         for i in range(int(self.track_length//50+1)):
@@ -653,10 +657,10 @@ class AdvSpdEnv(gym.Env):
 
             
 
-    def make_gif(self):
+    def make_gif(self,path="./simulate_gif/simulation.gif"):
         import os
         import glob
-        self.png_list[0].save('simulate_gif/simulation.gif', save_all=True, append_images=self.png_list[1:], optimize=False, duration=20, loop=1)
+        self.png_list[0].save(path, save_all=True, append_images=self.png_list[1:], optimize=False, duration=20, loop=1)
         # [os.remove(f) for f in glob.glob("./simulate_gif/*.png")]
         
 
