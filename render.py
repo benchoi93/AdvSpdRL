@@ -37,8 +37,11 @@ ob = env.reset()
 episode_over = False
 ob_list = []
 
-check_start = 1
-check_finish = 0
+combine = False
+
+ob_list.append([0,0,0,0,0])
+env.car_moving(ob_list, startorfinish=1, combine=combine)
+
 while not episode_over:
     t = time.time()
     # action = np.array(env.get_random_action())
@@ -48,15 +51,13 @@ while not episode_over:
     ob, reward, episode_over, info = env.step(action)
     ob_list.append([env.vehicle.position, env.vehicle.velocity, env.vehicle.acceleration, env.timestep, reward])
     # env.render(visible=True)
-    env.car_moving(ob_list, check_start, check_finish, combine=False)
+    env.car_moving(ob_list, startorfinish=0, combine=combine)
     check_start = 0
     print('-------------------------------------')
     # input()
 
-check_finish = 1
-
-env.car_moving(ob_list, check_start, check_finish)
-env.info_graph(ob_list, check_finish)
+env.car_moving(ob_list, startorfinish=1, combine=combine)
+env.info_graph(ob_list, check_finish=1)
 env.make_gif()
 print('-------------------------------------')
 print("reward coef: ", env.reward_coef)

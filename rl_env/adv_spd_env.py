@@ -229,7 +229,7 @@ class AdvSpdEnv(gym.Env):
 
         self.vehicle = Vehicle()
         self.signal = TrafficSignal()
-        self.section = SectionMaxSpeed(self.track_length)
+        self.section = SectionMaxSpeed(self.track_length, self.unit_length)
 
         self.timestep = 0
         self.violation = False
@@ -535,7 +535,7 @@ class AdvSpdEnv(gym.Env):
         acc = [ob[2] for ob in ob_list]
         step = [ob[3] for ob in ob_list]
         reward = [ob[4] for ob in ob_list]
-
+        print(step[-1]/10)
         # info figures
         plt.rc('font', size=15)
         plt.rc('axes', titlesize=22)
@@ -549,6 +549,11 @@ class AdvSpdEnv(gym.Env):
         # pos-vel
         ax1 = fig.add_subplot(221)
         ax1.plot(pos, vel, lw=2, color='k')
+        section_max_speed = self.section.section_max_speed
+        unit_length = self.unit_length
+        for i in range(len(section_max_speed)):
+            ax1.plot(np.linspace(i*unit_length, (i+1)*unit_length, unit_length*10),
+                     [section_max_speed[i]]*(unit_length*10), lw=2, color='r')
         ax1.set_title('x-v graph')
         ax1.set_xlabel('Position in m')
         ax1.set_ylabel('Velocity in km/h')
@@ -582,7 +587,7 @@ class AdvSpdEnv(gym.Env):
         green = self.signal.phase_length[True]
         red = self.signal.phase_length[False]
         cycle = green+red
-        for i in range(2):
+        for i in range(3):
             ax3.plot(np.linspace(cycle*i-(cycle-self.signal.offset), cycle*i-(cycle-self.signal.offset)+green, green*10), 
                                  [self.signal.location]*(green*10), lw=2, color='g')
             ax3.plot(np.linspace(cycle*i-(cycle-self.signal.offset)+green, cycle*i-(cycle-self.signal.offset)+cycle, red*10), 
@@ -612,8 +617,8 @@ class AdvSpdEnv(gym.Env):
         return fig
         
 
-    def car_moving(self, ob_list, check_start, check_finish, combine=False):
-        t2 = time.time()
+    def car_moving(self, ob_list, startorfinish=0, combine=False):
+        # t2 = time.time()
         pos = [int(np.round(ob[0], 0)) for ob in ob_list]
         step = [ob[3] for ob in ob_list]
 
@@ -626,7 +631,10 @@ class AdvSpdEnv(gym.Env):
         start = Image.open(start_finish_filename)
         finish = Image.open(start_finish_filename)
 
-        canvas = (1500, 500)
+        if combine == True:
+            canvas = (1500, 1500)
+        else:
+            canvas = (1500, 500)
         
         clearence = (0, 200)
         zero_x = 150
@@ -658,7 +666,7 @@ class AdvSpdEnv(gym.Env):
         background.paste(signal, signal_position, signal)
         background.paste(car, car_position, car)
 
-        print("make car-moving: {}".format(time.time()-t2))
+        # print("make car-moving: {}".format(time.time()-t2))
         # self.info_graph(ob_list)
         # graph = Image.open('./simulate_gif/graph_{}.png'.format(time[-1]))
 
@@ -669,7 +677,7 @@ class AdvSpdEnv(gym.Env):
             background.paste(graph, (0, 50))
             print("convert: {}".format(time.time()-t3))
         
-        if check_start == 1 or check_finish == 1:
+        if startorfinish == 1:
             for i in range(100):
                 self.png_list.append(background)
                     
@@ -680,12 +688,14 @@ class AdvSpdEnv(gym.Env):
     def make_gif(self, path="./simulate_gif/simulation.gif"):
         self.png_list[0].save(path, save_all=True, append_images=self.png_list[1:], optimize=False, duration=20, loop=1)
     
-    def make_graphgif(self, path="./simulate_gif/simulation.gif"):
-        self.png_list[0].save(path, save_all=True, append_images=self.png_list[1:], optimize=False, duration=20, loop=1)
+    # def make_graphgif(self, path="./simulate_gif/simulation.gif"):
+    #     self.png_list[0].save(path, save_all=True, append_images=self.png_list[1:], optimize=False, duration=20, loop=1)
 
 def fig2img(fig):
+    t4 = time.time()
     buf = io.BytesIO()
     fig.savefig(buf)
     buf.seek(0)
     img = Image.open(buf)
+    print("fig2img: {}".format(time.time()-t4))
     return img
