@@ -46,6 +46,7 @@ while not episode_over:
     t = time.time()
     # action = np.array(env.get_random_action())
     action, _ = model.predict(ob)
+    print("action space: ", action)
     # action = np.array(min(5, (50/3.6 - ob[1]) / env.dt))
     # print(action)
     ob, reward, episode_over, info = env.step(action)

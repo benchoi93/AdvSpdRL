@@ -653,7 +653,8 @@ class AdvSpdEnv(gym.Env):
         car_position = (zero_x - 80, canvas[1] - clearence[1] + 30)
 
         try:
-            font = ImageFont.truetype('arial.ttf', 20)
+            font = ImageFont.truetype('arial.ttf', 25)
+            timefont = ImageFont.truetype('arial.ttf', 40)
         except:
             font = ImageFont.load_default()
 
@@ -683,9 +684,10 @@ class AdvSpdEnv(gym.Env):
             graph = fig2img(self.info_graph(ob_list))
             plt.close()
             background.paste(graph, (0, 50))
-
             print("convert: {}".format(time.time()-t3))
         
+        draw.text((10, 10), "Time Step: {}s".format(step[-1]/10), (0,0,0), timefont)
+
         if startorfinish == 1:
             for i in range(100):
                 self.png_list.append(background)
@@ -696,9 +698,6 @@ class AdvSpdEnv(gym.Env):
 
     def make_gif(self, path="./simulate_gif/simulation.gif"):
         self.png_list[0].save(path, save_all=True, append_images=self.png_list[1:], optimize=False, duration=20, loop=1)
-    
-    # def make_graphgif(self, path="./simulate_gif/simulation.gif"):
-    #     self.png_list[0].save(path, save_all=True, append_images=self.png_list[1:], optimize=False, duration=20, loop=1)
 
 
 def fig2img(fig):

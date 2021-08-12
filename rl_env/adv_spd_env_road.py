@@ -11,6 +11,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 from PIL import Image, ImageDraw, ImageFont
 
+
 class Vehicle(object):
     def __init__(self):
         max_speed = 50 / 3.6
@@ -21,6 +22,7 @@ class Vehicle(object):
         self.jerk = 0
         self.action_limit_penalty = 1
         self.actiongap = 0
+
 
 class SectionMaxSpeed(object):
     def __init__(self, track_length=500, unit_length=100, min_speed=30, max_speed=50):
@@ -35,6 +37,11 @@ class SectionMaxSpeed(object):
         self.num_section = int(self.track_length / self.unit_length)
         assert(self.num_section > 0)
         self.section_max_speed = self.min_speed + np.random.random(size=self.num_section+1) * (self.max_speed - self.min_speed)
+        self.section_max_speed[0] = 50/3.6
+        self.section_max_speed[1] = 30/3.6
+        self.section_max_speed[2] = 50/3.6
+        self.section_max_speed[3] = 30/3.6
+        self.section_max_speed[4] = 50/3.6
 
     def get_cur_max_speed(self, x):
         return self.section_max_speed[int(x/self.unit_length)]
@@ -104,7 +111,8 @@ class TrafficSignal(object):
 
 class AdvSpdEnv(gym.Env):
     png_list = []
-    def __init__(self, dt=0.1, track_length=500.0, acc_max=5, acc_min=-5, speed_max=100.0/3.6, dec_th=-3, stop_th=2, reward_coef=[1, 10, 1, 0.01, 0, 1, 1, 1], timelimit=2400, unit_length=100):
+
+    def __init__(self, dt=0.1, track_length=500.0, acc_max=5, acc_min=-5, speed_max=100.0/3.6, dec_th=-3, stop_th=2, reward_coef=[1, 10, 1, 0.01, 0, 1, 1, 1], timelimit=2400, unit_length=100, unit_speed=10):
         png_list = []
 
         # num_observations = 2
@@ -119,8 +127,9 @@ class AdvSpdEnv(gym.Env):
         # [-reward_norm_velocity, -reward_shock, -reward_jerk, -reward_power, -penalty_travel_time]
         self.timelimit = timelimit
         self.unit_length = unit_length
+        self.unit_speed = unit_speed
 
-        self.action_space = spaces.Box(low=acc_min, high=acc_max, shape=[1, ])
+        self.action_space = spaces.Tuple(([spaces.Discrete(speed_max//unit_speed+1) for i in range(track_length//unit_length+1)]))
         self.reset()
 
         min_states = np.array([0.0,  # position
@@ -157,15 +166,13 @@ class AdvSpdEnv(gym.Env):
         pass
 
     def get_random_action(self):
-        return self.acc_min + (np.random.rand()) * (self.acc_max - self.acc_min)
+        return self.action_space.sample()
 
     def step(self, action):
         """
-
         Parameters
         ----------
         action :
-
         Returns
         -------
         ob, reward, episode_over, info : tuple
@@ -214,8 +221,9 @@ class AdvSpdEnv(gym.Env):
                       self.section.get_next_max_speed(self.vehicle.position),
                       self.section.get_distance_to_next_section(self.vehicle.position),
                       self.signal.location,
-                      self.signal.get_greentime(int(self.timestep*self.dt))[0] / self.dt,
-                      self.signal.get_greentime(int(self.timestep*self.dt))[1] / self.dt]
+                      self.signal.get_greentime(int(self.timestep*self.dt))[0] / self.dt - self.timestep,
+                      self.signal.get_greentime(int(self.timestep*self.dt))[1] / self.dt - self.timestep
+                      ]
         # else:
         #     self.state = [self.vehicle.position,
         #                   self.vehicle.velocity,
@@ -241,7 +249,7 @@ class AdvSpdEnv(gym.Env):
 
         return self.state
 
-    def render(self, mode='human', info_show=False, close=False,visible=True):
+    # def render(self, mode='human', info_show=False, close=False, visible=True):
         screen_width = 1200
         screen_height = 450
 
@@ -326,7 +334,6 @@ class AdvSpdEnv(gym.Env):
         self.viewer.history['acceleration'].append(self.vehicle.acceleration)
         self.viewer.history['reward'].append(np.array(self._get_reward()).dot(np.array(self.reward_coef)))
         self.viewer.history['reward_power'].append(self._get_reward()[3])
-
 
         if info_show:
             # info figures
@@ -435,6 +442,13 @@ class AdvSpdEnv(gym.Env):
 
     def _take_action(self, action):
         applied_action = action
+
+        self.section.section_max_speed = list(action)
+        
+        
+
+
+
         self.vehicle.actiongap = action
 
         max_acc = self.calculate_max_acceleration()
@@ -507,7 +521,6 @@ class AdvSpdEnv(gym.Env):
 
     def energy_consumption(self, gain=0.001):
         """Calculate power consumption of a vehicle.
-
         Assumes vehicle is an average sized vehicle.
         The power calculated here is the lower bound of the actual power consumed
         by a vehicle.
@@ -635,6 +648,7 @@ class AdvSpdEnv(gym.Env):
         else:
             canvas = (1500, 500)
         
+
         clearence = (0, 200)
         zero_x = 150
         scale_x = 10
@@ -644,11 +658,13 @@ class AdvSpdEnv(gym.Env):
         finish_position = (zero_x + int(scale_x * (self.track_length - pos[-1])), canvas[1] - clearence[1])
         signal_position = (zero_x + int(scale_x * (self.signal.location - pos[-1])), canvas[1] - clearence[1] - 50)
         car_position = (zero_x - 80, canvas[1] - clearence[1] + 30)
-        
+
         try:
-            font = ImageFont.truetype('arial.ttf', 20)
+            font = ImageFont.truetype('arial.ttf', 25)
+            timefont = ImageFont.truetype('arial.ttf', 40)
         except:
             font = ImageFont.load_default()
+
         background = Image.new('RGB', canvas, (255, 255, 255))
         draw = ImageDraw.Draw(background)
         for i in range(int(self.track_length//50+1)):
@@ -658,7 +674,7 @@ class AdvSpdEnv(gym.Env):
         background.paste(finish, finish_position)
         signal_draw = ImageDraw.Draw(signal)
         if self.signal.is_green(int(self.timestep * self.dt)):
-            signal_draw.ellipse((0,0,60,60,), (0, 255, 0))  # green signal
+            signal_draw.ellipse((0, 0, 60, 60,), (0, 255, 0))  # green signal
         else:
             signal_draw.ellipse((0,0,60,60,), (255, 0, 0))  # red signal
 
@@ -666,6 +682,7 @@ class AdvSpdEnv(gym.Env):
         background.paste(car, car_position, car)
 
         # print("make car-moving: {}".format(time.time()-t2))
+
         # self.info_graph(ob_list)
         # graph = Image.open('./simulate_gif/graph_{}.png'.format(time[-1]))
 
@@ -676,6 +693,8 @@ class AdvSpdEnv(gym.Env):
             background.paste(graph, (0, 50))
             print("convert: {}".format(time.time()-t3))
         
+        draw.text((10, 10), "Time Step: {}s".format(step[-1]/10), (0,0,0), timefont)
+
         if startorfinish == 1:
             for i in range(100):
                 self.png_list.append(background)
@@ -686,9 +705,7 @@ class AdvSpdEnv(gym.Env):
 
     def make_gif(self, path="./simulate_gif/simulation.gif"):
         self.png_list[0].save(path, save_all=True, append_images=self.png_list[1:], optimize=False, duration=20, loop=1)
-    
-    # def make_graphgif(self, path="./simulate_gif/simulation.gif"):
-    #     self.png_list[0].save(path, save_all=True, append_images=self.png_list[1:], optimize=False, duration=20, loop=1)
+
 
 def fig2img(fig):
     t4 = time.time()
@@ -696,5 +713,6 @@ def fig2img(fig):
     fig.savefig(buf)
     buf.seek(0)
     img = Image.open(buf)
+
     print("fig2img: {}".format(time.time()-t4))
     return img
