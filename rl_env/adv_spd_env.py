@@ -169,11 +169,9 @@ class AdvSpdEnv(gym.Env):
 
     def step(self, action):
         """
-
         Parameters
         ----------
         action :
-
         Returns
         -------
         ob, reward, episode_over, info : tuple
@@ -515,7 +513,6 @@ class AdvSpdEnv(gym.Env):
 
     def energy_consumption(self, gain=0.001):
         """Calculate power consumption of a vehicle.
-
         Assumes vehicle is an average sized vehicle.
         The power calculated here is the lower bound of the actual power consumed
         by a vehicle.

@@ -37,7 +37,7 @@ ob = env.reset()
 episode_over = False
 ob_list = []
 
-combine = False
+combine = True
 
 ob_list.append([0,0,0,0,0])
 env.car_moving(ob_list, startorfinish=1, combine=combine)
@@ -53,7 +53,7 @@ while not episode_over:
     # env.render(visible=True)
     env.car_moving(ob_list, startorfinish=0, combine=combine)
     check_start = 0
-    print('-------------------------------------')
+    # print('-------------------------------------')
     # input()
 
 env.car_moving(ob_list, startorfinish=1, combine=combine)

@@ -129,3 +129,6 @@ dmypy.json
 .pyre/
 params/
 log/
+
+# simulate_gif
+simulate_gif/
