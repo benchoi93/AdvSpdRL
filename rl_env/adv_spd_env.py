@@ -38,9 +38,9 @@ class SectionMaxSpeed(object):
         assert(self.num_section > 0)
         self.section_max_speed = self.min_speed + np.random.random(size=self.num_section+1) * (self.max_speed - self.min_speed)
         self.section_max_speed[0] = 50/3.6
-        self.section_max_speed[1] = 30/3.6
+        self.section_max_speed[1] = 50/3.6
         self.section_max_speed[2] = 50/3.6
-        self.section_max_speed[3] = 30/3.6
+        self.section_max_speed[3] = 50/3.6
         self.section_max_speed[4] = 50/3.6
 
     def get_cur_max_speed(self, x):
@@ -64,8 +64,8 @@ class TrafficSignal(object):
         self.phase_length = {True: 30, False: 90}
         self.cycle_length = sum(self.phase_length.values())
 
-        self.location = 300
-        # self.location = min_location + np.random.rand() * (max_location - min_location)
+        # self.location = 300
+        self.location = min_location + np.random.rand() * (max_location - min_location)
         self.timetable = np.ones(shape=[self.cycle_length]) * -1
 
         self.offset = 40
@@ -550,9 +550,9 @@ class AdvSpdEnv(gym.Env):
         plt.rc('xtick', labelsize=15)
         plt.rc('ytick', labelsize=15)
 
-        fig = plt.figure(figsize=(15, 10)) # 여기서 에러... -> Fail to create pixmap with Tk_GetPixmap in TkImgPhotoInstanceSetSize
+        fig = plt.figure(figsize=(15, 10))  # 여기서 에러... -> Fail to create pixmap with Tk_GetPixmap in TkImgPhotoInstanceSetSize
         fig.clf()
-        
+
         # pos-vel
         ax1 = fig.add_subplot(221)
         ax1.plot(pos, vel, lw=2, color='k')
@@ -579,7 +579,7 @@ class AdvSpdEnv(gym.Env):
         # x-t with signal phase
         ax3 = fig.add_subplot(223)
         ax3.plot([x*self.dt for x in range(len(pos))], pos, lw=2, color='k')
-        
+
         # xlim_max = self.timelimit
         # for i in range(xlim_max):
         #     if self.signal.is_green(i):
@@ -595,10 +595,10 @@ class AdvSpdEnv(gym.Env):
         red = self.signal.phase_length[False]
         cycle = green+red
         for i in range(3):
-            ax3.plot(np.linspace(cycle*i-(cycle-self.signal.offset), cycle*i-(cycle-self.signal.offset)+green, green*10), 
-                                 [self.signal.location]*(green*10), lw=2, color='g')
-            ax3.plot(np.linspace(cycle*i-(cycle-self.signal.offset)+green, cycle*i-(cycle-self.signal.offset)+cycle, red*10), 
-                                 [self.signal.location]*(red*10), lw=2, color='r')
+            ax3.plot(np.linspace(cycle*i-(cycle-self.signal.offset), cycle*i-(cycle-self.signal.offset)+green, green*10),
+                     [self.signal.location]*(green*10), lw=2, color='g')
+            ax3.plot(np.linspace(cycle*i-(cycle-self.signal.offset)+green, cycle*i-(cycle-self.signal.offset)+cycle, red*10),
+                     [self.signal.location]*(red*10), lw=2, color='r')
         ax3.set_title('x-t graph')
         ax3.set_xlabel('Time in s')
         ax3.set_ylabel('Position in m')
@@ -622,8 +622,6 @@ class AdvSpdEnv(gym.Env):
             plt.savefig('./simulate_gif/info_graph.png')
 
         return fig
-        
-
 
     def car_moving(self, ob_list, startorfinish=0, combine=False):
         # t2 = time.time()
@@ -643,7 +641,6 @@ class AdvSpdEnv(gym.Env):
             canvas = (1500, 1500)
         else:
             canvas = (1500, 500)
-        
 
         clearence = (0, 200)
         zero_x = 150
@@ -671,7 +668,7 @@ class AdvSpdEnv(gym.Env):
         if self.signal.is_green(int(self.timestep * self.dt)):
             signal_draw.ellipse((0, 0, 60, 60,), (0, 255, 0))  # green signal
         else:
-            signal_draw.ellipse((0,0,60,60,), (255, 0, 0))  # red signal
+            signal_draw.ellipse((0, 0, 60, 60,), (255, 0, 0))  # red signal
 
         background.paste(signal, signal_position, signal)
         background.paste(car, car_position, car)
@@ -688,18 +685,17 @@ class AdvSpdEnv(gym.Env):
             background.paste(graph, (0, 50))
 
             print("convert: {}".format(time.time()-t3))
-        
+
         if startorfinish == 1:
             for i in range(100):
                 self.png_list.append(background)
-                    
+
         else:
             self.png_list.append(background)
-        
 
     def make_gif(self, path="./simulate_gif/simulation.gif"):
         self.png_list[0].save(path, save_all=True, append_images=self.png_list[1:], optimize=False, duration=20, loop=1)
-    
+
     # def make_graphgif(self, path="./simulate_gif/simulation.gif"):
     #     self.png_list[0].save(path, save_all=True, append_images=self.png_list[1:], optimize=False, duration=20, loop=1)
 
