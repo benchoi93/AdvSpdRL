@@ -534,7 +534,7 @@ class AdvSpdEnv(gym.Env):
         power += M * speed * accel + M * g * Cr * speed + 0.5 * rho * A * Ca * speed ** 3
         return - power * gain  # kilo Watts (KW)
 
-    def info_graph(self, ob_list, check_finish=0):
+    def info_graph(self, ob_list, check_finish=0, path='./simulate_gif/info_graph.png'):
         t1 = time.time()
 
         pos = [ob[0] for ob in ob_list]
@@ -619,7 +619,7 @@ class AdvSpdEnv(gym.Env):
         print("make fig: {}".format(time.time()-t1))
 
         if check_finish == 1:
-            plt.savefig('./simulate_gif/info_graph.png')
+            plt.savefig(path)
 
         return fig
 
