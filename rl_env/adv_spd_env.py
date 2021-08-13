@@ -38,9 +38,9 @@ class SectionMaxSpeed(object):
         assert(self.num_section > 0)
         self.section_max_speed = self.min_speed + np.random.random(size=self.num_section+1) * (self.max_speed - self.min_speed)
         self.section_max_speed[0] = 50/3.6
-        self.section_max_speed[1] = 50/3.6
+        self.section_max_speed[1] = 30/3.6
         self.section_max_speed[2] = 50/3.6
-        self.section_max_speed[3] = 50/3.6
+        self.section_max_speed[3] = 30/3.6
         self.section_max_speed[4] = 50/3.6
 
     def get_cur_max_speed(self, x):
@@ -64,8 +64,8 @@ class TrafficSignal(object):
         self.phase_length = {True: 30, False: 90}
         self.cycle_length = sum(self.phase_length.values())
 
-        # self.location = 300
-        self.location = min_location + np.random.rand() * (max_location - min_location)
+        self.location = 300
+        # self.location = min_location + np.random.rand() * (max_location - min_location)
         self.timetable = np.ones(shape=[self.cycle_length]) * -1
 
         self.offset = 40
@@ -445,9 +445,9 @@ class AdvSpdEnv(gym.Env):
         applied_action = action
         self.vehicle.actiongap = action
 
-        max_acc = self.calculate_max_acceleration()
-        if max_acc < action:
-            applied_action = max_acc
+        # max_acc = self.calculate_max_acceleration()
+        # if max_acc < action:
+        #     applied_action = max_acc
 
         if self.vehicle.velocity + applied_action * self.dt < 0:
             applied_action = - self.vehicle.velocity / self.dt
