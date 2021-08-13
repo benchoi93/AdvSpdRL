@@ -445,9 +445,9 @@ class AdvSpdEnv(gym.Env):
         applied_action = action
         self.vehicle.actiongap = action
 
-        max_acc = self.calculate_max_acceleration()
-        if max_acc < action:
-            applied_action = max_acc
+        # max_acc = self.calculate_max_acceleration()
+        # if max_acc < action:
+        #     applied_action = max_acc
 
         if self.vehicle.velocity + applied_action * self.dt < 0:
             applied_action = - self.vehicle.velocity / self.dt
