@@ -55,11 +55,11 @@ env = AdvSpdEnv(reward_coef=[args.coef_vel,
                 timelimit=args.max_episode_steps)
 
 
-env = gym.wrappers.TimeLimit(env, max_episode_steps=args.max_episode_steps)
+# env = gym.wrappers.TimeLimit(env, max_episode_steps=args.max_episode_steps)
 
 model = args.model
 checkpoint_callback = CheckpointCallback(save_freq=100000, save_path=f"./params/{model}{int(cuda)}", name_prefix=f"AdvSpdRL_{model}")
-gif_callback = GIFCallback(env=env, save_freq=100000, save_path=os.path.join('simulate_gif', f'{model}{int(cuda)}'), name_prefix=f"AdvSpdRL_{model}")
+# gif_callback = GIFCallback(env=env, save_freq=100000, save_path=os.path.join('simulate_gif', f'{model}{int(cuda)}'), name_prefix=f"AdvSpdRL_{model}")
 
 
 directory = f'params/{model}{int(cuda)}'
@@ -73,10 +73,12 @@ model = globals()[model]("MlpPolicy",
                          verbose=1,
                          tensorboard_log=f"log/{model}/",
                          device='cuda',
-                         policy_kwargs={"activation_fn": activation_fn}
+                         policy_kwargs={"activation_fn": activation_fn
+                                        },
+                         use_sde=True
                          )
 # model.save("params/AdvSpdRL")
-model.learn(total_timesteps=1000000000, callback=[checkpoint_callback, gif_callback])
+model.learn(total_timesteps=1000000000, callback=[checkpoint_callback])
 model.save("params/AdvSpdRL_PPO")
 
 
