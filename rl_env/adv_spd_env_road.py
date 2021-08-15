@@ -22,23 +22,23 @@ class Vehicle(object):
         self.jerk = 0
         self.action_limit_penalty = 1
         self.actiongap = 0
-
-        self.ob_list = []
+        self.timestep = 0
+        self.veh_info = []
 
     def update(self, acc, dt):
-
+        self.timestep += 1
         self.jerk = abs(acc - self.acceleration) / dt
         self.acceleration = acc
 
-        assert(np.round(self.velocity + acc * dt, -5) >= 0)
+        # assert(np.round(self.velocity + acc * dt, -5) >= 0)
         self.velocity = self.velocity + acc * dt
         self.position = self.position + self.velocity * dt
-        print(f'Position = {self.position}|| Vehicle = {self.velocity} || Acc = {self.acceleration}')
+        print(f'Position = {np.round(self.position, 4)} || Velocity = {np.round(self.velocity, 4)} || Acc = {np.round(self.acceleration, 4)} || Time = {self.timestep}')
 
         assert(self.velocity >= 0)
         assert(self.position >= 0)
 
-        self.ob_list.append([])
+        self.veh_info.append([self.position, self.velocity, self.acceleration, self.timestep])
 
 
 class SectionMaxSpeed(object):
@@ -149,7 +149,7 @@ class AdvSpdEnvRoad(gym.Env):
         self.unit_speed = unit_speed
 
         # self.action_space = spaces.Tuple(([spaces.Discrete(int(speed_max * 3.6 / unit_speed) + 1) for i in range(int(track_length/unit_length)+1)]))
-        self.action_space = spaces.MultiDiscrete([int(speed_max * 3.6 / unit_speed) + 1] * (int(track_length/unit_length)+1))
+        self.action_space = spaces.MultiDiscrete([int(speed_max * 3.6 / unit_speed)] * (int(track_length/unit_length)+1))
 
         self.reset()
 
@@ -225,14 +225,14 @@ class AdvSpdEnvRoad(gym.Env):
 
         if prev_ob[0] <= self.signal.location:
             if ob[0] > self.signal.location:
-                if not self.signal.is_green(int(self.timestep * self.dt)):
+                if not self.signal.is_green(int(self.vehicle.timestep * self.dt)):
                     self.violation = True
 
         reward = np.array(self._get_reward()).dot(np.array(self.reward_coef))
 
         episode_over = self.vehicle.position > self.track_length
-
-        return ob, reward, episode_over, {'vehicle_ob': self.vehicle.ob_list}
+        
+        return ob, reward, episode_over, {'vehicle_ob': self.vehicle.veh_info[-1]}
 
     def _get_state(self):
         # if self.vehicle.position < self.signal.location:
@@ -242,8 +242,8 @@ class AdvSpdEnvRoad(gym.Env):
                       self.section.get_next_max_speed(self.vehicle.position),
                       self.section.get_distance_to_next_section(self.vehicle.position),
                       self.signal.location,
-                      self.signal.get_greentime(int(self.timestep*self.dt))[0] / self.dt - self.timestep,
-                      self.signal.get_greentime(int(self.timestep*self.dt))[1] / self.dt - self.timestep
+                      self.signal.get_greentime(int(self.vehicle.timestep*self.dt))[0] / self.dt - self.vehicle.timestep,
+                      self.signal.get_greentime(int(self.vehicle.timestep*self.dt))[1] / self.dt - self.vehicle.timestep
                       ]
         # else:
         #     self.state = [self.vehicle.position,
@@ -342,7 +342,7 @@ class AdvSpdEnvRoad(gym.Env):
             info.position = (clearance_x - 40, 225 + clearance_y)
             self.viewer.components['info'] = info
 
-        if self.signal.is_green(int(self.timestep * self.dt)):
+        if self.signal.is_green(int(self.vehicle.timestep * self.dt)):
             self.viewer.components['signal'].color = (0, 255, 0)
         else:
             self.viewer.components['signal'].color = (255, 0, 0)
@@ -476,16 +476,18 @@ class AdvSpdEnvRoad(gym.Env):
         sig_max_acc = self.calculate_max_acceleration()
         acceleration = min(sig_max_acc, acceleration)
 
-        assert(acceleration >= self.acc_min)
+        assert(acceleration >= self.acc_min) 
         assert(acceleration <= self.acc_max)
         return acceleration
 
     def _take_action(self, action):
-        applied_action = action * self.unit_speed
+        applied_action = (action + 1) * self.unit_speed
         self.section.section_max_speed = applied_action / 3.6
 
         for _ in range(self.num_action_updates):
+            print("-----------------------------------------------------------------------------")
             acceleration = self.get_veh_acceleration(self.vehicle.position, self.vehicle.velocity)
+            print("acceleration =", np.round(acceleration, 4))
             self.vehicle.update(acceleration, self.dt)
             if self.vehicle.position > self.track_length:
                 break
@@ -493,29 +495,7 @@ class AdvSpdEnvRoad(gym.Env):
         assert(self.vehicle.velocity >= 0)
         assert(self.vehicle.position >= 0)
         # return 0
-        # applied_action = action
-
-        # self.section.section_max_speed = list(action)
-
-        # self.vehicle.actiongap = action
-
-        # max_acc = self.calculate_max_acceleration()
-        # if max_acc < action:
-        #     applied_action = max_acc
-
-        # if self.vehicle.velocity + applied_action * self.dt < 0:
-        #     applied_action = - self.vehicle.velocity / self.dt
-
-        # self.vehicle.jerk = abs(applied_action - self.vehicle.acceleration) / self.dt
-        # self.vehicle.acceleration = applied_action
-
-        # self.vehicle.actiongap -= applied_action
-
-        # assert(np.round(self.vehicle.velocity + applied_action * self.dt, -5) >= 0)
-        # self.vehicle.velocity = self.vehicle.velocity + applied_action * self.dt
-        # self.vehicle.position = self.vehicle.position + self.vehicle.velocity * self.dt
-        # self.vehicle.action_limit_penalty = abs(applied_action / action)
-
+        
     def _get_reward(self):
         max_speed = self.section.get_cur_max_speed(self.vehicle.position)
         reward_norm_velocity = np.abs((self.vehicle.velocity) - max_speed)
@@ -549,21 +529,29 @@ class AdvSpdEnvRoad(gym.Env):
         # return reward_norm_velocity
 
     def calculate_max_acceleration(self):
-
         dec_th = self.dec_th
         max_acc = self.acc_max
 
         spd_max_acc = (self.speed_max - self.vehicle.velocity)/self.dt
         max_acc = spd_max_acc if max_acc > spd_max_acc else max_acc
-
-        if not self.signal.is_green(int(self.timestep * self.dt)):
-
+        print("max_acc = ", np.round(max_acc, 4))
+        print("section max speed =", np.round(self.section.get_cur_max_speed(self.vehicle.position), 4))
+        if not self.signal.is_green(int(self.vehicle.timestep * self.dt)):
             if self.vehicle.position < self.signal.location:
-                mild_stopping_distance = -(self.vehicle.velocity) ** 2 / (2 * (dec_th))
+                mild_stopping_distance = -(self.vehicle.velocity + self.acc_max * self.dt) ** 2 / (2 * (dec_th))
                 distance_to_signal = self.signal.location - self.stop_th - self.vehicle.position
-
+                print(f'mild stopping distance = {np.round(mild_stopping_distance, 4)} || distance to signal = {np.round(distance_to_signal, 4)}')
                 if distance_to_signal < mild_stopping_distance:
-                    max_acc = -(self.vehicle.velocity) ** 2 / (2 * (distance_to_signal))
+                    if distance_to_signal == 0:
+                        max_acc = 0
+                    else:
+                        print("warning!")
+                        max_acc = -(self.vehicle.velocity ) ** 2 / (2 * (distance_to_signal))
+            
+                    print("max_acc = ", np.round(max_acc, 4))
+                # else:
+                #     if self.vehicle.velocity <= 2:
+                #         max_acc = -(self.vehicle.velocity) ** 2 / (2 * (distance_to_signal))
 
         assert(max_acc >= self.acc_min)
         return max_acc
@@ -720,7 +708,7 @@ class AdvSpdEnvRoad(gym.Env):
         background.paste(start, start_position)
         background.paste(finish, finish_position)
         signal_draw = ImageDraw.Draw(signal)
-        if self.signal.is_green(int(self.timestep * self.dt)):
+        if self.signal.is_green(int(self.vehicle.timestep * self.dt)):
             signal_draw.ellipse((0, 0, 60, 60,), (0, 255, 0))  # green signal
         else:
             signal_draw.ellipse((0, 0, 60, 60,), (255, 0, 0))  # red signal

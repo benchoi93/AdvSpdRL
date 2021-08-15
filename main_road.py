@@ -14,7 +14,7 @@ from stable_baselines3.common.callbacks import CheckpointCallback
 import pickle
 import argparse
 
-from util.custom_callback import GIFCallback
+from util.custom_callback_road import GIFCallback
 # from rl_env.policy import MlpExtractor_AdvSpdRL
 
 
@@ -79,7 +79,6 @@ model = globals()[model]("MlpPolicy",
 # model.save("params/AdvSpdRL")
 model.learn(total_timesteps=1000000000, callback=[checkpoint_callback, gif_callback])
 model.save("params/AdvSpdRL_PPO")
-
 
 # checkpoint_callback = CheckpointCallback(save_freq=10000, save_path="./params/SAC", name_prefix="AdvSpdRL_SAC")
 

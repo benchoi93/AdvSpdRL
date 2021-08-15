@@ -505,10 +505,14 @@ class AdvSpdEnv(gym.Env):
             if self.vehicle.position < self.signal.location:
                 mild_stopping_distance = -(self.vehicle.velocity + self.acc_max * self.dt) ** 2 / (2 * (dec_th))
                 distance_to_signal = self.signal.location - self.stop_th - self.vehicle.position
-
+                
                 if distance_to_signal < mild_stopping_distance:
-                    max_acc = -(self.vehicle.velocity + self.acc_max * self.dt) ** 2 / (2 * (distance_to_signal))
+                    if distance_to_signal == 0:
+                        max_acc = 0
+                    else:
+                        max_acc = -(self.vehicle.velocity ) ** 2 / (2 * (distance_to_signal))
 
+        assert(max_acc >= self.acc_min)
         return max_acc
 
     def energy_consumption(self, gain=0.001):
@@ -620,8 +624,6 @@ class AdvSpdEnv(gym.Env):
 
         return fig
         
-
-
     def car_moving(self, ob_list, startorfinish=0, combine=False):
         # t2 = time.time()
         pos = [int(np.round(ob[0], 0)) for ob in ob_list]
@@ -695,7 +697,6 @@ class AdvSpdEnv(gym.Env):
         else:
             self.png_list.append(background)
         
-
     def make_gif(self, path="./simulate_gif/simulation.gif"):
         self.png_list[0].save(path, save_all=True, append_images=self.png_list[1:], optimize=False, duration=20, loop=1)
 
