@@ -209,8 +209,8 @@ class AdvSpdEnv(gym.Env):
                     self.violation = True
 
         reward = np.array(self._get_reward()).dot(np.array(self.reward_coef))
-        if self.timestep >= self.timelimit:
-            reward -= 10000
+        # if self.timestep >= self.timelimit:
+        #     reward -= self.timelimit * 10
 
         episode_over = (self.vehicle.position > self.track_length) | (self.timestep >= self.timelimit)
 
@@ -218,12 +218,12 @@ class AdvSpdEnv(gym.Env):
 
     def _get_state(self):
         # if self.vehicle.position < self.signal.location:
-        self.state = [self.vehicle.position,
-                      self.vehicle.velocity,
-                      self.section.get_cur_max_speed(self.vehicle.position),
-                      self.section.get_next_max_speed(self.vehicle.position),
-                      self.section.get_distance_to_next_section(self.vehicle.position),
-                      self.signal.location,
+        self.state = [self.vehicle.position / self.track_length,
+                      self.vehicle.velocity / (60/3.6),
+                      self.section.get_cur_max_speed(self.vehicle.position) / (60/3.6),
+                      self.section.get_next_max_speed(self.vehicle.position) / (60/3.6),
+                      self.section.get_distance_to_next_section(self.vehicle.position) / self.track_length,
+                      self.signal.location / self.track_length,
                       self.signal.get_greentime(int(self.timestep*self.dt))[0] / self.dt - self.timestep,
                       self.signal.get_greentime(int(self.timestep*self.dt))[1] / self.dt - self.timestep
                       ]
