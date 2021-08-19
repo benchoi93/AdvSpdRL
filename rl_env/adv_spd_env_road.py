@@ -129,7 +129,9 @@ class TrafficSignal(object):
 class AdvSpdEnvRoad(gym.Env):
     png_list = []
 
-    def __init__(self, dt=0.1, action_dt=5, track_length=500.0, acc_max=5, acc_min=-5, speed_max=100.0/3.6, dec_th=-3, stop_th=2, reward_coef=[1, 10, 1, 0.01, 0, 1, 1, 1], timelimit=2400, unit_length=100, unit_speed=10):
+    def __init__(self, dt=0.1, action_dt=5, track_length=500.0, acc_max=5, acc_min=-5,
+                 speed_max=100.0/3.6, dec_th=-3, stop_th=2, reward_coef=[1, 10, 1, 0.01, 0, 1, 1, 1],
+                 timelimit=2400, unit_length=100, unit_speed=10):
         png_list = []
 
         # num_observations = 2
@@ -533,7 +535,7 @@ class AdvSpdEnvRoad(gym.Env):
     def _get_reward(self):
         max_speed = self.section.get_cur_max_speed(self.vehicle.position)
         reward_norm_velocity = np.abs((self.vehicle.velocity) - max_speed)
-        reward_norm_velocity /= max_speed
+        reward_norm_velocity /= self.speed_max
 
         reward_jerk = np.abs(self.vehicle.jerk)
         jerk_max = (self.acc_max - self.acc_min) / self.dt

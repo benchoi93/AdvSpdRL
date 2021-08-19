@@ -33,6 +33,7 @@ parser.add_argument('--max-episode-steps', default=2400, type=int, help="maximum
 parser.add_argument('--activation', default='relu', type=str, choices=['relu', 'tanh'], help="activation function of policy networks")
 parser.add_argument('--unit-length', default=100, type=int, help="")
 parser.add_argument('--unit-speed', default=10, type=int, help="")
+parser.add_argument('--action-dt', default=5, type=int, help="")
 
 args = parser.parse_args()
 
@@ -58,7 +59,8 @@ env = AdvSpdEnvRoad(reward_coef=[args.coef_vel,
                                  args.coef_actiongap],  # coef_signal_violation
                     timelimit=args.max_episode_steps,
                     unit_length=args.unit_length,
-                    unit_speed=args.unit_speed
+                    unit_speed=args.unit_speed,
+                    action_dt=args.action_dt
                     )
 
 
