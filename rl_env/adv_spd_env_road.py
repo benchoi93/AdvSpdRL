@@ -496,7 +496,7 @@ class AdvSpdEnvRoad(gym.Env):
             if not self.signal.is_green(self.timestep):
                 leader_position = self.signal.location
 
-        relative_speed = (0 - velocity)
+        relative_speed = (velocity-0)
         spacing = leader_position - position
 
         des_distance = s_0 + velocity * des_timeheadway + velocity * relative_speed / (2 * math.sqrt(a * b))
