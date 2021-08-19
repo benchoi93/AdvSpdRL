@@ -225,11 +225,6 @@ class AdvSpdEnvRoad(gym.Env):
 
         ob = self._get_state()
 
-        if prev_ob[0] <= self.signal.location:
-            if ob[0] > self.signal.location:
-                if not self.signal.is_green(int(self.vehicle.timestep * self.dt)):
-                    self.violation = True
-
         reward = np.array(np.array(reward_list).sum(0)).dot(np.array(self.reward_coef))
 
         episode_over = self.vehicle.position > self.track_length
@@ -522,8 +517,17 @@ class AdvSpdEnvRoad(gym.Env):
             if self.vehicle.velocity + acceleration * self.dt < 0:
                 acceleration = - self.vehicle.velocity / self.dt
 
+            prev_position = self.vehicle.position
             # print("acceleration =", np.round(acceleration, 4))
             self.vehicle.update(acceleration, self.dt)
+
+            cur_position = self.vehicle.position
+
+            if prev_position <= self.signal.location:
+                if cur_position > self.signal.location:
+                    if not self.signal.is_green(int(self.timestep * self.dt)):
+                        self.violation = True
+
             reward = self._get_reward()
             reward_list.append(reward)
             self.timestep += 1
@@ -531,6 +535,7 @@ class AdvSpdEnvRoad(gym.Env):
             # print(f"time = {self.timestep} || x = {self.vehicle.position}")
 
             reward_with_coef = np.array(reward).dot(np.array(self.reward_coef))
+            print(reward_with_coef)
             self.ob_list.append([self.vehicle.position, self.vehicle.velocity, self.vehicle.acceleration, self.timestep, reward_with_coef])
             # self.car_moving(self.ob_list, startorfinish=False, combine=True)
 
