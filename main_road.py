@@ -60,7 +60,7 @@ env = gym.wrappers.TimeLimit(env, max_episode_steps=args.max_episode_steps)
 
 model = args.model
 checkpoint_callback = CheckpointCallback(save_freq=100000, save_path=f"./params/{model}{int(cuda)}", name_prefix=f"AdvSpdRL_{model}")
-gif_callback = GIFCallback(env=env, save_freq=100000, save_path=os.path.join('simulate_gif', f'{model}{int(cuda)}'), name_prefix=f"AdvSpdRL_{model}")
+# gif_callback = GIFCallback(env=env, save_freq=100000, save_path=os.path.join('simulate_gif', f'{model}{int(cuda)}'), name_prefix=f"AdvSpdRL_{model}")
 
 
 directory = f'params/{model}{int(cuda)}'
@@ -77,7 +77,7 @@ model = globals()[model]("MlpPolicy",
                          policy_kwargs={"activation_fn": activation_fn}
                          )
 # model.save("params/AdvSpdRL")
-model.learn(total_timesteps=1000000000, callback=[checkpoint_callback, gif_callback])
+model.learn(total_timesteps=1000000000, callback=[checkpoint_callback])
 model.save("params/AdvSpdRL_PPO")
 
 # checkpoint_callback = CheckpointCallback(save_freq=10000, save_path="./params/SAC", name_prefix="AdvSpdRL_SAC")
