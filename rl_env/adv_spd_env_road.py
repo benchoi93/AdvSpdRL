@@ -128,10 +128,11 @@ class TrafficSignal(object):
 
 class AdvSpdEnvRoad(gym.Env):
     png_list = []
+    ob_list = []
+    ob_list.append([0,0,0,0,0])
+    reward_list = []
 
     def __init__(self, dt=0.1, action_dt=5, track_length=500.0, acc_max=5, acc_min=-5, speed_max=100.0/3.6, dec_th=-3, stop_th=2, reward_coef=[1, 10, 1, 0.01, 0, 1, 1, 1], timelimit=2400, unit_length=100, unit_speed=10):
-        png_list = []
-
         # num_observations = 2
         self.dt = dt
         self.action_dt = action_dt
@@ -177,6 +178,9 @@ class AdvSpdEnvRoad(gym.Env):
 
         # self.png_list = []
         # self.scenario = scenario
+        # ob_list = []
+        # ob_list.append([0,0,0,0,0])
+        # reward_list = []
         self.viewer = None
         pass
 
@@ -217,7 +221,7 @@ class AdvSpdEnvRoad(gym.Env):
                  use this for learning.
         """
         prev_ob = self.state
-
+        
         self._take_action(action)
         self.timestep += self.action_dt
 
@@ -228,7 +232,7 @@ class AdvSpdEnvRoad(gym.Env):
                 if not self.signal.is_green(int(self.vehicle.timestep * self.dt)):
                     self.violation = True
 
-        reward = np.array(self._get_reward()).dot(np.array(self.reward_coef))
+        reward = np.sum(self.reward_list)
 
         episode_over = self.vehicle.position > self.track_length
         
@@ -487,8 +491,15 @@ class AdvSpdEnvRoad(gym.Env):
         for _ in range(self.num_action_updates):
             print("-----------------------------------------------------------------------------")
             acceleration = self.get_veh_acceleration(self.vehicle.position, self.vehicle.velocity)
-            print("acceleration =", np.round(acceleration, 4))
+            # print("acceleration =", np.round(acceleration, 4))
             self.vehicle.update(acceleration, self.dt)
+
+            reward = np.array(self._get_reward()).dot(np.array(self.reward_coef))
+            self.reward_list.append(reward)
+
+            self.ob_list.append([self.vehicle.position, self.vehicle.velocity, self.vehicle.acceleration, self.vehicle.timestep, reward])
+            self.car_moving(self.ob_list, startorfinish=0, combine=True)
+
             if self.vehicle.position > self.track_length:
                 break
 
@@ -534,21 +545,21 @@ class AdvSpdEnvRoad(gym.Env):
 
         spd_max_acc = (self.speed_max - self.vehicle.velocity)/self.dt
         max_acc = spd_max_acc if max_acc > spd_max_acc else max_acc
-        print("max_acc = ", np.round(max_acc, 4))
-        print("section max speed =", np.round(self.section.get_cur_max_speed(self.vehicle.position), 4))
+        # print("max_acc = ", np.round(max_acc, 4))
+        # print("section max speed =", np.round(self.section.get_cur_max_speed(self.vehicle.position), 4))
         if not self.signal.is_green(int(self.vehicle.timestep * self.dt)):
             if self.vehicle.position < self.signal.location:
                 mild_stopping_distance = -(self.vehicle.velocity + self.acc_max * self.dt) ** 2 / (2 * (dec_th))
                 distance_to_signal = self.signal.location - self.stop_th - self.vehicle.position
-                print(f'mild stopping distance = {np.round(mild_stopping_distance, 4)} || distance to signal = {np.round(distance_to_signal, 4)}')
+                # print(f'mild stopping distance = {np.round(mild_stopping_distance, 4)} || distance to signal = {np.round(distance_to_signal, 4)}')
                 if distance_to_signal < mild_stopping_distance:
                     if distance_to_signal == 0:
                         max_acc = 0
                     else:
-                        print("warning!")
-                        max_acc = -(self.vehicle.velocity ) ** 2 / (2 * (distance_to_signal))
+                        # print("warning!")
+                        max_acc = -(self.vehicle.velocity) ** 2 / (2 * (distance_to_signal))
             
-                    print("max_acc = ", np.round(max_acc, 4))
+                    # print("max_acc = ", np.round(max_acc, 4))
                 # else:
                 #     if self.vehicle.velocity <= 2:
                 #         max_acc = -(self.vehicle.velocity) ** 2 / (2 * (distance_to_signal))
@@ -576,15 +587,16 @@ class AdvSpdEnvRoad(gym.Env):
         power += M * speed * accel + M * g * Cr * speed + 0.5 * rho * A * Ca * speed ** 3
         return - power * gain  # kilo Watts (KW)
 
-    def info_graph(self, ob_list, check_finish=0):
+    def info_graph(self, ob_list, check_finish=False):
         t1 = time.time()
 
         pos = [ob[0] for ob in ob_list]
-        vel = [ob[1] for ob in ob_list]
+        vel = [ob[1]*3.6 for ob in ob_list]
         acc = [ob[2] for ob in ob_list]
         step = [ob[3] for ob in ob_list]
         reward = [ob[4] for ob in ob_list]
         print(step[-1]/10)
+
         # info figures
         plt.rc('font', size=15)
         plt.rc('axes', titlesize=22)
@@ -607,7 +619,7 @@ class AdvSpdEnvRoad(gym.Env):
         ax1.set_xlabel('Position in m')
         ax1.set_ylabel('Velocity in km/h')
         ax1.set_xlim((0.0, self.track_length))
-        ax1.set_ylim((0.0, 50))
+        ax1.set_ylim((0.0, 100))
 
         # pos-acc
         ax2 = fig.add_subplot(222)
@@ -660,12 +672,12 @@ class AdvSpdEnvRoad(gym.Env):
 
         print("make fig: {}".format(time.time()-t1))
 
-        if check_finish == 1:
+        if check_finish == True:
             plt.savefig('./simulate_gif/info_graph.png')
 
         return fig
 
-    def car_moving(self, ob_list, startorfinish=0, combine=False):
+    def car_moving(self, ob_list, startorfinish=False, combine=False):
         # t2 = time.time()
         pos = [int(np.round(ob[0], 0)) for ob in ob_list]
         step = [ob[3] for ob in ob_list]
@@ -730,7 +742,7 @@ class AdvSpdEnvRoad(gym.Env):
 
         draw.text((10, 10), "Time Step: {}s".format(step[-1]/10), (0, 0, 0), timefont)
 
-        if startorfinish == 1:
+        if startorfinish == True:
             for i in range(100):
                 self.png_list.append(background)
 

@@ -3,7 +3,7 @@ import glob
 import pickle
 import matplotlib.pyplot as plt
 import time
-from rl_env.adv_spd_env_road import AdvSpdEnv
+from rl_env.adv_spd_env_road import AdvSpdEnvRoad
 from PIL import Image
 import numpy as np
 
@@ -39,8 +39,8 @@ ob_list = []
 
 combine = True
 
-ob_list.append([0,0,0,0,0])
-env.car_moving(ob_list, startorfinish=1, combine=combine)
+# ob_list.append([0,0,0,0,0])
+env.car_moving(env.ob_list, startorfinish=True, combine=combine)
 
 while not episode_over:
     t = time.time()
@@ -52,20 +52,19 @@ while not episode_over:
     # print(action)
     ob, reward, episode_over, info = env.step(action)
 
-    # info[0]: vehicle position / info[1]: vehicle velocity / info[2]: vehicle acceleration / info[3]: timestep
-    ob_list.append([info[0], info[1], info[2], info[3], reward])
+    # ob_list.append([info[0], info[1], info[2], info[3], reward])
     # env.render(visible=True)
-    env.car_moving(ob_list, startorfinish=0, combine=combine)
-    check_start = 0
+    # env.car_moving(ob_list, startorfinish=0, combine=combine)
     # print('-------------------------------------')
     # input()
 
-env.car_moving(ob_list, startorfinish=1, combine=combine)
-env.info_graph(ob_list, check_finish=1)
+env.car_moving(env.ob_list, startorfinish=True, combine=combine)
+env.info_graph(env.ob_list, check_finish=True)
 env.make_gif()
+
 print('-------------------------------------')
 print("reward coef: ", env.reward_coef)
-print("reward: {}".format(sum([x[4] for x in ob_list])))
+print("reward: {}".format(sum([x[4] for x in env.ob_list])))
 print("execution time: {}".format(np.round(time.time()-start), 5))
-print("# of episodes: {}".format(len(ob_list)))
-print("execution time per episode: {}".format((time.time()-start)/len(ob_list)))
+print("# of episodes: {}".format(len(env.ob_list)))
+print("execution time per episode: {}".format((time.time()-start)/len(env.ob_list)))
