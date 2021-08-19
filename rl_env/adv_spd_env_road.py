@@ -26,7 +26,6 @@ class Vehicle(object):
         self.veh_info = []
 
     def update(self, acc, dt):
-        self.timestep += 1
         self.jerk = abs(acc - self.acceleration) / dt
         self.acceleration = acc
 
@@ -128,7 +127,7 @@ class TrafficSignal(object):
 
 class AdvSpdEnvRoad(gym.Env):
     png_list = []
-    ob_list = [[0,0,0,0,0]]
+    ob_list = [[0, 0, 0, 0, 0]]
 
     def __init__(self, dt=0.1, action_dt=5, track_length=500.0, acc_max=5, acc_min=-5,
                  speed_max=100.0/3.6, dec_th=-3, stop_th=2, reward_coef=[1, 10, 1, 0.01, 0, 1, 1, 1],
@@ -222,7 +221,7 @@ class AdvSpdEnvRoad(gym.Env):
         prev_ob = self.state
 
         reward_list = self._take_action(action)
-        self.timestep += self.action_dt
+        # self.timestep += self.action_dt
 
         ob = self._get_state()
 
@@ -527,10 +526,13 @@ class AdvSpdEnvRoad(gym.Env):
             self.vehicle.update(acceleration, self.dt)
             reward = self._get_reward()
             reward_list.append(reward)
+            self.timestep += 1
+
+            # print(f"time = {self.timestep} || x = {self.vehicle.position}")
 
             reward_with_coef = np.array(reward).dot(np.array(self.reward_coef))
-            self.ob_list.append([self.vehicle.position, self.vehicle.velocity, self.vehicle.acceleration, self.vehicle.timestep, reward_with_coef])
-            self.car_moving(self.ob_list, startorfinish=False, combine=True)
+            self.ob_list.append([self.vehicle.position, self.vehicle.velocity, self.vehicle.acceleration, self.timestep, reward_with_coef])
+            # self.car_moving(self.ob_list, startorfinish=False, combine=True)
 
             if self.vehicle.position > self.track_length:
                 break
@@ -560,9 +562,11 @@ class AdvSpdEnvRoad(gym.Env):
         reward_action_gap = self.vehicle.actiongap / (self.acc_max - self.acc_min)
         # reward_finishing = 1000 if self.vehicle.position > 490 else 0
         # reward_power = self.energy_consumption() * self.dt / 75 * 0.5
-
         power = -self.energy_consumption()
-        reward_power = self.vehicle.velocity / power if (power > 0 and self.vehicle.velocity >= 0) else 0
+        reward_power = power / 100
+
+        # power = -self.energy_consumption()
+        # reward_power = self.vehicle.velocity / power if (power > 0 and self.vehicle.velocity >= 0) else 0
 
         return [-reward_norm_velocity, -reward_shock, -reward_jerk, -reward_power, -penalty_travel_time, -penalty_signal_violation, -reward_remaining_distance, -reward_action_gap]
         # return -reward_norm_velocity - \
@@ -588,18 +592,17 @@ class AdvSpdEnvRoad(gym.Env):
             if not self.signal.is_green(int(self.timestep*self.dt)):
                 leader_position = self.signal.location
 
-                relative_speed = (velocity-0)
-                spacing = leader_position - position
+        relative_speed = (velocity-0)
+        spacing = leader_position - position
 
-                des_distance = s_0 + velocity * des_timeheadway + velocity * relative_speed / (2 * math.sqrt(a * b))
-                if des_distance > spacing:
-                    acceleration = a * (1 - (velocity/des_speed)**delta - (des_distance/spacing)**2)
-                    acceleration = max(self.acc_min, min(self.acc_max, acceleration))
-                    assert(acceleration >= self.acc_min)
-                    assert(acceleration <= self.acc_max)
-                    return acceleration
+        des_distance = s_0 + velocity * des_timeheadway + velocity * relative_speed / (2 * math.sqrt(a * b))
+        acceleration = a * (1 - (velocity/des_speed)**delta - (des_distance/spacing)**2)
+        acceleration = max(self.acc_min, min(self.acc_max, acceleration))
+        assert(acceleration >= self.acc_min)
+        assert(acceleration <= self.acc_max)
+        return acceleration
 
-        return self.acc_max
+        # return self.acc_max
 
     def calculate_max_acceleration(self):
         dec_th = self.dec_th
@@ -676,7 +679,7 @@ class AdvSpdEnvRoad(gym.Env):
         unit_length = self.unit_length
         for i in range(len(section_max_speed)):
             ax1.plot(np.linspace(i*unit_length, (i+1)*unit_length, unit_length*10),
-                     [section_max_speed[i]]*(unit_length*10*3.6), lw=2, color='r')
+                     [section_max_speed[i]*3.6]*(unit_length*10), lw=2, color='r')
         ax1.set_title('x-v graph')
         ax1.set_xlabel('Position in m')
         ax1.set_ylabel('Velocity in km/h')
