@@ -128,6 +128,7 @@ class TrafficSignal(object):
 
 class AdvSpdEnvRoad(gym.Env):
     png_list = []
+    ob_list = [[0,0,0,0,0]]
 
     def __init__(self, dt=0.1, action_dt=5, track_length=500.0, acc_max=5, acc_min=-5,
                  speed_max=100.0/3.6, dec_th=-3, stop_th=2, reward_coef=[1, 10, 1, 0.01, 0, 1, 1, 1],
@@ -510,7 +511,7 @@ class AdvSpdEnvRoad(gym.Env):
         applied_action = (action + 1) * self.unit_speed
         self.section.section_max_speed = applied_action / 3.6
 
-        reward = []
+        reward_list = []
         for _ in range(self.num_action_updates):
             # print("-----------------------------------------------------------------------------")
             # acceleration = self.get_veh_acceleration(self.vehicle.position, self.vehicle.velocity)
@@ -524,13 +525,20 @@ class AdvSpdEnvRoad(gym.Env):
 
             # print("acceleration =", np.round(acceleration, 4))
             self.vehicle.update(acceleration, self.dt)
-            reward.append(self._get_reward())
+            reward = self._get_reward()
+            reward_list.append(reward)
+
+            reward_with_coef = np.array(reward).dot(np.array(self.reward_coef))
+            self.ob_list.append([self.vehicle.position, self.vehicle.velocity, self.vehicle.acceleration, self.vehicle.timestep, reward_with_coef])
+            self.car_moving(self.ob_list, startorfinish=False, combine=True)
+
             if self.vehicle.position > self.track_length:
                 break
 
         assert(self.vehicle.velocity >= 0)
         assert(self.vehicle.position >= 0)
-        return reward
+
+        return reward_list
 
     def _get_reward(self):
         max_speed = self.section.get_cur_max_speed(self.vehicle.position)
@@ -642,14 +650,15 @@ class AdvSpdEnvRoad(gym.Env):
         return - power * gain  # kilo Watts (KW)
 
     def info_graph(self, ob_list, check_finish=0):
-        t1 = time.time()
+        # t1 = time.time()
 
         pos = [ob[0] for ob in ob_list]
-        vel = [ob[1] for ob in ob_list]
+        vel = [ob[1]*3.6 for ob in ob_list]
         acc = [ob[2] for ob in ob_list]
         step = [ob[3] for ob in ob_list]
         reward = [ob[4] for ob in ob_list]
         print(step[-1]/10)
+
         # info figures
         plt.rc('font', size=15)
         plt.rc('axes', titlesize=22)
@@ -667,12 +676,12 @@ class AdvSpdEnvRoad(gym.Env):
         unit_length = self.unit_length
         for i in range(len(section_max_speed)):
             ax1.plot(np.linspace(i*unit_length, (i+1)*unit_length, unit_length*10),
-                     [section_max_speed[i]]*(unit_length*10), lw=2, color='r')
+                     [section_max_speed[i]]*(unit_length*10*3.6), lw=2, color='r')
         ax1.set_title('x-v graph')
         ax1.set_xlabel('Position in m')
         ax1.set_ylabel('Velocity in km/h')
         ax1.set_xlim((0.0, self.track_length))
-        ax1.set_ylim((0.0, 50))
+        ax1.set_ylim((0.0, 100))
 
         # pos-acc
         ax2 = fig.add_subplot(222)
@@ -723,7 +732,7 @@ class AdvSpdEnvRoad(gym.Env):
         ax4.set_ylim((-3.0, 3.0))
         plt.subplots_adjust(hspace=0.35)
 
-        print("make fig: {}".format(time.time()-t1))
+        # print("make fig: {}".format(time.time()-t1))
 
         if check_finish == 1:
             plt.savefig('./simulate_gif/info_graph.png')
@@ -787,11 +796,11 @@ class AdvSpdEnvRoad(gym.Env):
         # graph = Image.open('./simulate_gif/graph_{}.png'.format(time[-1]))
 
         if combine == True:
-            t3 = time.time()
+            # t3 = time.time()
             graph = fig2img(self.info_graph(ob_list))
             plt.close()
             background.paste(graph, (0, 50))
-            print("convert: {}".format(time.time()-t3))
+            # print("convert: {}".format(time.time()-t3))
 
         draw.text((10, 10), "Time Step: {}s".format(step[-1]/10), (0, 0, 0), timefont)
 
@@ -807,11 +816,11 @@ class AdvSpdEnvRoad(gym.Env):
 
 
 def fig2img(fig):
-    t4 = time.time()
+    # t4 = time.time()
     buf = io.BytesIO()
     fig.savefig(buf)
     buf.seek(0)
     img = Image.open(buf)
 
-    print("fig2img: {}".format(time.time()-t4))
+    # print("fig2img: {}".format(time.time()-t4))
     return img
