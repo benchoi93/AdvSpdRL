@@ -535,7 +535,7 @@ class AdvSpdEnvRoad(gym.Env):
             # print(f"time = {self.timestep} || x = {self.vehicle.position}")
 
             reward_with_coef = np.array(reward).dot(np.array(self.reward_coef))
-            print(reward_with_coef)
+            # print(reward_with_coef)
             self.ob_list.append([self.vehicle.position, self.vehicle.velocity, self.vehicle.acceleration, self.timestep, reward_with_coef])
             # self.car_moving(self.ob_list, startorfinish=False, combine=True)
 
