@@ -31,6 +31,9 @@ parser.add_argument('--coef-distance', default=0, type=float, help="add penalty 
 parser.add_argument('--coef-actiongap', default=0, type=float, help="add penalty to gap between calculated action and applied action")
 parser.add_argument('--max-episode-steps', default=2400, type=int, help="maximum number of steps in one episode")
 parser.add_argument('--activation', default='relu', type=str, choices=['relu', 'tanh'], help="activation function of policy networks")
+parser.add_argument('--unit-length', default=100, type=int, help="")
+parser.add_argument('--unit-speed', default=10, type=int, help="")
+
 args = parser.parse_args()
 
 print(args)
@@ -53,7 +56,10 @@ env = AdvSpdEnvRoad(reward_coef=[args.coef_vel,
                                  args.coef_signal,
                                  args.coef_distance,
                                  args.coef_actiongap],  # coef_signal_violation
-                    timelimit=args.max_episode_steps)
+                    timelimit=args.max_episode_steps,
+                    unit_length=args.unit_length,
+                    unit_speed=args.unit_speed
+                    )
 
 
 env = gym.wrappers.TimeLimit(env, max_episode_steps=args.max_episode_steps)

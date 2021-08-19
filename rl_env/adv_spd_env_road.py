@@ -480,29 +480,29 @@ class AdvSpdEnvRoad(gym.Env):
         assert(acceleration <= self.acc_max)
         return acceleration
 
-    def get_veh_acc_idm(self, position, velocity):
+    # def get_veh_acc_idm(self, position, velocity):
 
-        # signal on = 가상의 Vehicle
-        # signal off leader position = inf
-        import math
-        des_speed = self.section.get_cur_max_speed(position)
-        delta = 4
-        a = 2
-        b = 2
-        s_0 = 1
-        des_timeheadway = 1
-        leader_position = 1e10
-        if position <= self.signal.location:
-            if not self.signal.is_green(self.timestep):
-                leader_position = self.signal.location
+    #     # signal on = 가상의 Vehicle
+    #     # signal off leader position = inf
+    #     import math
+    #     des_speed = self.section.get_cur_max_speed(position)
+    #     delta = 4
+    #     a = 2
+    #     b = 2
+    #     s_0 = 1
+    #     des_timeheadway = 1
+    #     leader_position = 1e10
+    #     if position <= self.signal.location:
+    #         if not self.signal.is_green(self.timestep):
+    #             leader_position = self.signal.location
 
-        relative_speed = (velocity-0)
-        spacing = leader_position - position
+    #     relative_speed = (velocity-0)
+    #     spacing = leader_position - position
 
-        des_distance = s_0 + velocity * des_timeheadway + velocity * relative_speed / (2 * math.sqrt(a * b))
+    #     des_distance = s_0 + velocity * des_timeheadway + velocity * relative_speed / (2 * math.sqrt(a * b))
 
-        acceleration = self.acc_max * (1 - (velocity/des_speed)**delta - (des_distance/spacing)**2)
-        return acceleration
+    #     acceleration = self.acc_max * (1 - (velocity/des_speed)**delta - (des_distance/spacing)**2)
+    #     return acceleration
 
     def _take_action(self, action):
         applied_action = (action + 1) * self.unit_speed
@@ -511,7 +511,15 @@ class AdvSpdEnvRoad(gym.Env):
         reward = []
         for _ in range(self.num_action_updates):
             # print("-----------------------------------------------------------------------------")
-            acceleration = self.get_veh_acceleration(self.vehicle.position, self.vehicle.velocity)
+            # acceleration = self.get_veh_acceleration(self.vehicle.position, self.vehicle.velocity)
+            acceleration = self.get_veh_acc_idm(self.vehicle.position, self.vehicle.velocity)
+
+            assert(acceleration >= self.acc_min)
+            assert(acceleration <= self.acc_max)
+
+            if self.vehicle.velocity + acceleration * self.dt < 0:
+                acceleration = - self.vehicle.velocity / self.dt
+
             # print("acceleration =", np.round(acceleration, 4))
             self.vehicle.update(acceleration, self.dt)
             reward.append(self._get_reward())
@@ -553,6 +561,35 @@ class AdvSpdEnvRoad(gym.Env):
         #     reward_power - \
         #     penalty_travel_time
         # return reward_norm_velocity
+
+    def get_veh_acc_idm(self, position, velocity):
+
+        # signal on = 가상의 Vehicle
+        # signal off leader position = inf
+        import math
+        des_speed = self.section.get_cur_max_speed(position)
+        delta = 4
+        a = 2
+        b = 2
+        s_0 = 1
+        des_timeheadway = 1
+        leader_position = 1e10
+        if position <= self.signal.location:
+            if not self.signal.is_green(int(self.timestep*self.dt)):
+                leader_position = self.signal.location
+
+                relative_speed = (velocity-0)
+                spacing = leader_position - position
+
+                des_distance = s_0 + velocity * des_timeheadway + velocity * relative_speed / (2 * math.sqrt(a * b))
+                if des_distance > spacing:
+                    acceleration = a * (1 - (velocity/des_speed)**delta - (des_distance/spacing)**2)
+                    acceleration = max(self.acc_min, min(self.acc_max, acceleration))
+                    assert(acceleration >= self.acc_min)
+                    assert(acceleration <= self.acc_max)
+                    return acceleration
+
+        return self.acc_max
 
     def calculate_max_acceleration(self):
         dec_th = self.dec_th
