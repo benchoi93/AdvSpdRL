@@ -447,7 +447,8 @@ class AdvSpdEnv(gym.Env):
         applied_action = action
         self.vehicle.actiongap = action
 
-        max_acc = self.calculate_max_acceleration()
+        # max_acc = self.calculate_max_acceleration()
+        max_acc = self.get_veh_acc_idm(self.vehicle.position, self.vehicle.velocity)
         if max_acc < action:
             applied_action = max_acc
 
@@ -515,6 +516,32 @@ class AdvSpdEnv(gym.Env):
 
         return max_acc
 
+    def get_veh_acc_idm(self, position, velocity):
+
+        # signal on = 가상의 Vehicle
+        # signal off leader position = inf
+        import math
+        des_speed = self.section.get_cur_max_speed(position)
+        delta = 4
+        a = 2
+        b = 2
+        s_0 = 1
+        des_timeheadway = 1
+        leader_position = 1e10
+        if position <= self.signal.location:
+            if not self.signal.is_green(int(self.timestep*self.dt)):
+                leader_position = self.signal.location
+
+                relative_speed = (velocity-0)
+                spacing = leader_position - position
+
+                des_distance = s_0 + velocity * des_timeheadway + velocity * relative_speed / (2 * math.sqrt(a * b))
+                if des_distance > spacing:
+                    acceleration = a * (1 - (velocity/des_speed)**delta - (des_distance/spacing)**2)
+                    return acceleration
+
+        return self.acc_max
+
     def energy_consumption(self, gain=0.001):
         """Calculate power consumption of a vehicle.
 
@@ -544,7 +571,7 @@ class AdvSpdEnv(gym.Env):
         acc = [ob[2] for ob in ob_list]
         step = [ob[3] for ob in ob_list]
         reward = [ob[4] for ob in ob_list]
-        print(step[-1]/10)
+        # print(step[-1]/10)
         # info figures
         plt.rc('font', size=15)
         plt.rc('axes', titlesize=22)
@@ -618,7 +645,7 @@ class AdvSpdEnv(gym.Env):
         ax4.set_ylim((-3.0, 3.0))
         plt.subplots_adjust(hspace=0.35)
 
-        print("make fig: {}".format(time.time()-t1))
+        # print("make fig: {}".format(time.time()-t1))
 
         if check_finish == 1:
             plt.savefig(path)
@@ -709,5 +736,5 @@ def fig2img(fig):
     buf.seek(0)
     img = Image.open(buf)
 
-    print("fig2img: {}".format(time.time()-t4))
+    # print("fig2img: {}".format(time.time()-t4))
     return img
