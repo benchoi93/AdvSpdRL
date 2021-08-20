@@ -191,7 +191,7 @@ class AdvSpdEnvRoad(gym.Env):
     def get_random_action(self):
         return self.action_space.sample()
 
-    def step(self, action):
+    def step(self, action, render=False):
         """
         Parameters
         ----------
@@ -218,9 +218,9 @@ class AdvSpdEnvRoad(gym.Env):
                  However, official evaluations of your agent are not allowed to
                  use this for learning.
         """
-        prev_ob = self.state
+        # prev_ob = self.state
 
-        reward_list = self._take_action(action)
+        reward_list = self._take_action(action, render=render)
         # self.timestep += self.action_dt
 
         ob = self._get_state()
@@ -501,7 +501,7 @@ class AdvSpdEnvRoad(gym.Env):
     #     acceleration = self.acc_max * (1 - (velocity/des_speed)**delta - (des_distance/spacing)**2)
     #     return acceleration
 
-    def _take_action(self, action):
+    def _take_action(self, action, render=False):
         applied_action = (action + 1) * self.unit_speed
         self.section.section_max_speed = applied_action / 3.6
 
@@ -537,7 +537,8 @@ class AdvSpdEnvRoad(gym.Env):
             reward_with_coef = np.array(reward).dot(np.array(self.reward_coef))
             # print(reward_with_coef)
             self.ob_list.append([self.vehicle.position, self.vehicle.velocity, self.vehicle.acceleration, self.timestep, reward_with_coef])
-            # self.car_moving(self.ob_list, startorfinish=False, combine=True)
+            if render:
+                self.car_moving(self.ob_list, startorfinish=False, combine=True)
 
             if self.vehicle.position > self.track_length:
                 break
@@ -568,7 +569,7 @@ class AdvSpdEnvRoad(gym.Env):
         # reward_finishing = 1000 if self.vehicle.position > 490 else 0
         # reward_power = self.energy_consumption() * self.dt / 75 * 0.5
         power = -self.energy_consumption()
-        reward_power = power / 100
+        reward_power = max(power, 0) / 100
 
         # power = -self.energy_consumption()
         # reward_power = self.vehicle.velocity / power if (power > 0 and self.vehicle.velocity >= 0) else 0
@@ -781,6 +782,7 @@ class AdvSpdEnvRoad(gym.Env):
             timefont = ImageFont.truetype('arial.ttf', 40)
         except:
             font = ImageFont.load_default()
+            timefont = ImageFont.load_default()
 
         background = Image.new('RGB', canvas, (255, 255, 255))
         draw = ImageDraw.Draw(background)
