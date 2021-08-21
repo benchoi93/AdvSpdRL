@@ -31,9 +31,9 @@ parser.add_argument('--coef-distance', default=0, type=float, help="add penalty 
 parser.add_argument('--coef-actiongap', default=0, type=float, help="add penalty to gap between calculated action and applied action")
 parser.add_argument('--max-episode-steps', default=2400, type=int, help="maximum number of steps in one episode")
 parser.add_argument('--activation', default='relu', type=str, choices=['relu', 'tanh'], help="activation function of policy networks")
-parser.add_argument('--unit-length', default=100, type=int, help="")
-parser.add_argument('--unit-speed', default=10, type=int, help="")
-parser.add_argument('--action-dt', default=5, type=int, help="")
+parser.add_argument('--unit-length', default=25, type=int, help="")
+parser.add_argument('--unit-speed', default=5, type=int, help="")
+parser.add_argument('--action-dt', default=1, type=int, help="")
 
 args = parser.parse_args()
 
