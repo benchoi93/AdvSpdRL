@@ -16,21 +16,18 @@ import time
 start = time.time()
 
 modelname = 'PPO'
-
 cuda = '0'
 # coef_power = 0.01
 # param = 'AdvSpdRL_DDPG_3500000_steps'
 
 # try:
-env = pickle.load(open(os.path.join('params', f'{modelname}{cuda}', 'env.pkl'), 'rb'))
-# except:
-#     print("cannot load predefined Env, loading default env")
-#     env = AdvSpdEnv()
+env: AdvSpdEnvRoad = pickle.load(open(os.path.join('params', f'{modelname}{cuda}', 'env.pkl'), 'rb'))
+# env = AdvSpdEnvRoad(reward_coef=env.reward_coef)
 
-model = globals()[modelname]("MlpPolicy", env, verbose=1)
+model = globals()[modelname]("MlpPolicy", env, verbose=1, device='cpu')
 list_of_files = glob.glob(os.path.join('params', f'{modelname}{cuda}/*'))
 latest_file = max(list_of_files, key=os.path.getmtime)
-# model = model.load(latest_file)
+model = model.load(latest_file, device='cpu')
 # env = env
 
 ob = env.reset()
@@ -45,8 +42,8 @@ env.car_moving(env.ob_list, startorfinish=True, combine=combine)
 while not episode_over:
     t = time.time()
     # action = np.array(env.get_random_action())
-    # action, _ = model.predict(ob)
-    action = env.get_random_action()
+    action, _ = model.predict(ob)
+    # action = env.get_random_action()
     # print("action space: ", action)
     # action = np.array(min(5, (50/3.6 - ob[1]) / env.dt))
     # print(action)
@@ -55,13 +52,13 @@ while not episode_over:
     # info[0]: vehicle position / info[1]: vehicle velocity / info[2]: vehicle acceleration / info[3]: timestep
     # ob_list.append([info[0], info[1], info[2], info[3], reward])
     # env.render(visible=True)
-    # env.car_moving(ob_list, startorfinish=0, combine=combine)
+    # env.car_moving(env.ob_list, startorfinish=0, combine=combine)
     # print('-------------------------------------')
     # input()
 
 env.car_moving(env.ob_list, startorfinish=True, combine=combine)
 env.info_graph(env.ob_list, check_finish=True)
-env.make_gif()
+env.make_gif(path=f'simulate_gif/{modelname}{cuda}/simulate.gif')
 
 print('-------------------------------------')
 print("reward coef: ", env.reward_coef)

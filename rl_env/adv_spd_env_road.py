@@ -129,8 +129,8 @@ class AdvSpdEnvRoad(gym.Env):
     png_list = []
     ob_list = [[0, 0, 0, 0, 0]]
 
-    def __init__(self, dt=0.1, action_dt=5, track_length=500.0, acc_max=5, acc_min=-5,
-                 speed_max=100.0/3.6, dec_th=-3, stop_th=2, reward_coef=[1, 10, 1, 0.01, 0, 1, 1, 1],
+    def __init__(self, dt=0.1, action_dt=5, track_length=500.0, acc_max=2, acc_min=-3,
+                 speed_max=50.0/3.6, dec_th=-3, stop_th=2, reward_coef=[1, 10, 1, 0.01, 0, 1, 1, 1],
                  timelimit=2400, unit_length=100, unit_speed=10):
         png_list = []
 
@@ -151,7 +151,7 @@ class AdvSpdEnvRoad(gym.Env):
         self.unit_speed = unit_speed
 
         # self.action_space = spaces.Tuple(([spaces.Discrete(int(speed_max * 3.6 / unit_speed) + 1) for i in range(int(track_length/unit_length)+1)]))
-        self.action_space = spaces.MultiDiscrete([int(speed_max * 3.6 / unit_speed)] * (int(track_length/unit_length)+1))
+        self.action_space = spaces.MultiDiscrete([int(speed_max*2 * 3.6 / unit_speed)] * (int(track_length/unit_length)+1))
 
         self.reset()
 
@@ -165,9 +165,9 @@ class AdvSpdEnvRoad(gym.Env):
                                0.0  # green time end
                                ])
         max_states = np.array([self.track_length*2,  # position
-                               self.speed_max,  # velocity
-                               self.speed_max,  # cur_max_speed
-                               self.speed_max,  # next_max_speed
+                               self.speed_max*2,  # velocity
+                               self.speed_max*2,  # cur_max_speed
+                               self.speed_max*2,  # next_max_speed
                                self.unit_length,  # distance to next section
                                self.track_length*2,   # signal location
                                self.timelimit*2,   # green time start
@@ -477,30 +477,6 @@ class AdvSpdEnvRoad(gym.Env):
         assert(acceleration <= self.acc_max)
         return acceleration
 
-    # def get_veh_acc_idm(self, position, velocity):
-
-    #     # signal on = 가상의 Vehicle
-    #     # signal off leader position = inf
-    #     import math
-    #     des_speed = self.section.get_cur_max_speed(position)
-    #     delta = 4
-    #     a = 2
-    #     b = 2
-    #     s_0 = 1
-    #     des_timeheadway = 1
-    #     leader_position = 1e10
-    #     if position <= self.signal.location:
-    #         if not self.signal.is_green(self.timestep):
-    #             leader_position = self.signal.location
-
-    #     relative_speed = (velocity-0)
-    #     spacing = leader_position - position
-
-    #     des_distance = s_0 + velocity * des_timeheadway + velocity * relative_speed / (2 * math.sqrt(a * b))
-
-    #     acceleration = self.acc_max * (1 - (velocity/des_speed)**delta - (des_distance/spacing)**2)
-    #     return acceleration
-
     def _take_action(self, action, render=False):
         applied_action = (action + 1) * self.unit_speed
         self.section.section_max_speed = applied_action / 3.6
@@ -557,7 +533,12 @@ class AdvSpdEnvRoad(gym.Env):
         jerk_max = (self.acc_max - self.acc_min) / self.dt
         reward_jerk /= jerk_max
 
-        reward_shock = 1 if self.vehicle.velocity > self.section.get_cur_max_speed(self.vehicle.position) else 0
+        reward_shock = 0
+        if self.vehicle.velocity > self.section.get_cur_max_speed(self.vehicle.position):
+            reward_shock += 1
+        if self.vehicle.velocity > self.speed_max:
+            reward_shock += 1
+
         penalty_signal_violation = 1 if self.violation else 0
         # penalty_action_limit = self.vehicle.action_limit_penalty if self.vehicle.action_limit_penalty != 1 else 0
         # penalty_moving_backward = 1000 if self.vehicle.velocity < 0 else 0
@@ -589,8 +570,8 @@ class AdvSpdEnvRoad(gym.Env):
         import math
         des_speed = self.section.get_cur_max_speed(position)
         delta = 4
-        a = 2
-        b = 2
+        a = self.acc_max
+        b = self.acc_min
         s_0 = 1
         des_timeheadway = 1
         leader_position = 1e10
@@ -601,7 +582,7 @@ class AdvSpdEnvRoad(gym.Env):
         relative_speed = (velocity-0)
         spacing = leader_position - position
 
-        des_distance = s_0 + velocity * des_timeheadway + velocity * relative_speed / (2 * math.sqrt(a * b))
+        des_distance = s_0 + velocity * des_timeheadway + velocity * relative_speed / (2 * math.sqrt(abs(a * b)))
         acceleration = a * (1 - (velocity/des_speed)**delta - (des_distance/spacing)**2)
         acceleration = max(self.acc_min, min(self.acc_max, acceleration))
         assert(acceleration >= self.acc_min)
