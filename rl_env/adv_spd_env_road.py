@@ -14,9 +14,9 @@ from PIL import Image, ImageDraw, ImageFont
 
 class Vehicle(object):
     def __init__(self):
-        max_speed = 50 / 3.6
+        # max_speed = 50 / 3.6
         self.position = 0
-        # self.velocity = np.random.rand() * max_speed
+        self.velocity = np.random.rand() * max_speed
         self.velocity = 40/3.6
         self.acceleration = 0
         self.jerk = 0
@@ -53,11 +53,11 @@ class SectionMaxSpeed(object):
         self.num_section = int(self.track_length / self.unit_length)
         assert(self.num_section > 0)
         self.section_max_speed = self.min_speed + np.random.random(size=self.num_section+1) * (self.max_speed - self.min_speed)
-        self.section_max_speed[0] = 50/3.6
-        self.section_max_speed[1] = 30/3.6
-        self.section_max_speed[2] = 50/3.6
-        self.section_max_speed[3] = 30/3.6
-        self.section_max_speed[4] = 50/3.6
+        # self.section_max_speed[0] = 50/3.6
+        # self.section_max_speed[1] = 30/3.6
+        # self.section_max_speed[2] = 50/3.6
+        # self.section_max_speed[3] = 30/3.6
+        # self.section_max_speed[4] = 50/3.6
 
     def get_cur_max_speed(self, x):
         return self.section_max_speed[int(x/self.unit_length)]
@@ -80,12 +80,12 @@ class TrafficSignal(object):
         self.phase_length = {True: 30, False: 90}
         self.cycle_length = sum(self.phase_length.values())
 
-        self.location = 300
-        # self.location = min_location + np.random.rand() * (max_location - min_location)
+        # self.location = 300
+        self.location = min_location + np.random.rand() * (max_location - min_location)
         self.timetable = np.ones(shape=[self.cycle_length]) * -1
 
-        self.offset = 40
-        # offset = np.random.randint(0, self.cycle_length)
+        # self.offset = 40
+        self.offset = np.random.randint(0, self.cycle_length)
 
         for i in range(self.cycle_length):
             cur_idx = (i+self.offset) % self.cycle_length
