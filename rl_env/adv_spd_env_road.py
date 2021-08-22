@@ -14,9 +14,9 @@ from PIL import Image, ImageDraw, ImageFont
 
 class Vehicle(object):
     def __init__(self):
-        # max_speed = 50 / 3.6
+        # init_max_speed = 50 / 3.6
         self.position = 0
-        self.velocity = np.random.rand() * max_speed
+        # self.velocity = np.random.rand() * init_max_speed
         self.velocity = 40/3.6
         self.acceleration = 0
         self.jerk = 0
@@ -80,12 +80,12 @@ class TrafficSignal(object):
         self.phase_length = {True: 30, False: 90}
         self.cycle_length = sum(self.phase_length.values())
 
-        # self.location = 300
-        self.location = min_location + np.random.rand() * (max_location - min_location)
+        self.location = 300
+        # self.location = min_location + np.random.rand() * (max_location - min_location)
         self.timetable = np.ones(shape=[self.cycle_length]) * -1
 
-        # self.offset = 40
-        self.offset = np.random.randint(0, self.cycle_length)
+        self.offset = 40
+        # self.offset = np.random.randint(0, self.cycle_length)
 
         for i in range(self.cycle_length):
             cur_idx = (i+self.offset) % self.cycle_length
@@ -131,7 +131,7 @@ class AdvSpdEnvRoad(gym.Env):
 
     def __init__(self, dt=0.1, action_dt=5, track_length=500.0, acc_max=2, acc_min=-3,
                  speed_max=50.0/3.6, dec_th=-3, stop_th=2, reward_coef=[1, 10, 1, 0.01, 0, 1, 1, 1],
-                 timelimit=2400, unit_length=100, unit_speed=10):
+                 timelimit=2400, unit_length=100, unit_speed=10, stochastic=False, min_location=250, max_location=350):
         png_list = []
 
         # num_observations = 2
@@ -145,10 +145,13 @@ class AdvSpdEnvRoad(gym.Env):
         self.dec_th = dec_th
         self.stop_th = stop_th
         self.reward_coef = reward_coef
+        self.stochastic = stochastic
         # [-reward_norm_velocity, -reward_shock, -reward_jerk, -reward_power, -penalty_travel_time]
         self.timelimit = timelimit
         self.unit_length = unit_length
         self.unit_speed = unit_speed
+        self.min_location = min_location
+        self.max_location = max_location
 
         # self.action_space = spaces.Tuple(([spaces.Discrete(int(speed_max * 3.6 / unit_speed) + 1) for i in range(int(track_length/unit_length)+1)]))
         self.action_space = spaces.MultiDiscrete([int(speed_max*2 * 3.6 / unit_speed)] * (int(track_length/unit_length)+1))
@@ -255,6 +258,11 @@ class AdvSpdEnvRoad(gym.Env):
         self.vehicle = Vehicle()
         self.signal = TrafficSignal()
         self.section = SectionMaxSpeed(self.track_length, self.unit_length)
+
+        if self.stochastic:
+            self.vehicle.velocity = np.random.rand() * self.speed_max
+            self.signal.location = self.min_location + np.random.rand() * (self.max_location - self.min_location)
+            self.signal.offset = np.random.randint(0, self.signal.cycle_length)
 
         self.timestep = 0
         self.violation = False

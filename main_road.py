@@ -34,7 +34,7 @@ parser.add_argument('--activation', default='relu', type=str, choices=['relu', '
 parser.add_argument('--unit-length', default=25, type=int, help="")
 parser.add_argument('--unit-speed', default=5, type=int, help="")
 parser.add_argument('--action-dt', default=1, type=int, help="")
-
+parser.add_argument('--stochastic', default=True, type=bool)
 args = parser.parse_args()
 
 print(args)
@@ -60,7 +60,8 @@ env = AdvSpdEnvRoad(reward_coef=[args.coef_vel,
                     timelimit=args.max_episode_steps,
                     unit_length=args.unit_length,
                     unit_speed=args.unit_speed,
-                    action_dt=args.action_dt
+                    action_dt=args.action_dt,
+                    stochastic=args.stochastic
                     )
 
 
