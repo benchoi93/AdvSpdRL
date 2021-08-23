@@ -35,6 +35,7 @@ parser.add_argument('--unit-length', default=25, type=int, help="")
 parser.add_argument('--unit-speed', default=5, type=int, help="")
 parser.add_argument('--action-dt', default=1, type=int, help="")
 parser.add_argument('--stochastic', default=True, type=bool)
+parser.add_argument('--entropy', default=0, type=float, help="")
 args = parser.parse_args()
 
 print(args)
@@ -83,7 +84,8 @@ model = globals()[model]("MlpPolicy",
                          verbose=1,
                          tensorboard_log=f"log/{model}/",
                          device='cuda',
-                         policy_kwargs={"activation_fn": activation_fn}
+                         policy_kwargs={"activation_fn": activation_fn},
+                         ent_coef=args.entropy
                          )
 # model.save("params/AdvSpdRL")
 model.learn(total_timesteps=1000000000, callback=[checkpoint_callback])
