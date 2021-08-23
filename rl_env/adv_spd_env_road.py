@@ -13,11 +13,11 @@ from PIL import Image, ImageDraw, ImageFont
 
 
 class Vehicle(object):
-    def __init__(self):
+    def __init__(self, initial_speed=40/3.6):
         # init_max_speed = 50 / 3.6
         self.position = 0
         # self.velocity = np.random.rand() * init_max_speed
-        self.velocity = 40/3.6
+        self.velocity = initial_speed
         self.acceleration = 0
         self.jerk = 0
         self.action_limit_penalty = 1
@@ -75,17 +75,18 @@ class SectionMaxSpeed(object):
 
 
 class TrafficSignal(object):
-    def __init__(self, min_location=250, max_location=350):
+    def __init__(self, min_location=250, max_location=350, green_time=30, red_time=90, location=300, offset_rand=False):
 
-        self.phase_length = {True: 30, False: 90}
+        self.phase_length = {True: green_time, False: red_time}
         self.cycle_length = sum(self.phase_length.values())
 
-        self.location = 300
+        self.location = location
         # self.location = min_location + np.random.rand() * (max_location - min_location)
         self.timetable = np.ones(shape=[self.cycle_length]) * -1
 
         self.offset = 40
-        # self.offset = np.random.randint(0, self.cycle_length)
+        if offset_rand:
+            self.offset = np.random.randint(0, self.cycle_length)
 
         for i in range(self.cycle_length):
             cur_idx = (i+self.offset) % self.cycle_length
@@ -255,14 +256,15 @@ class AdvSpdEnvRoad(gym.Env):
 
     def reset(self):
 
-        self.vehicle = Vehicle()
-        self.signal = TrafficSignal()
-        self.section = SectionMaxSpeed(self.track_length, self.unit_length)
-
         if self.stochastic:
-            self.vehicle.velocity = np.random.rand() * self.speed_max
-            self.signal.location = self.min_location + np.random.rand() * (self.max_location - self.min_location)
-            self.signal.offset = np.random.randint(0, self.signal.cycle_length)
+            self.vehicle = Vehicle(initial_speed=np.random.rand() * self.speed_max/3.6)
+            self.signal = TrafficSignal(location=self.min_location + np.random.rand() * (self.max_location - self.min_location),
+                                        offset_rand=True)
+        else:
+            self.vehicle = Vehicle()
+            self.signal = TrafficSignal()
+
+        self.section = SectionMaxSpeed(self.track_length, self.unit_length)
 
         self.timestep = 0
         self.violation = False
