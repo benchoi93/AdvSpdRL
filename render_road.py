@@ -32,11 +32,8 @@ model = model.load(latest_file, device='cpu')
 
 ob = env.reset()
 episode_over = False
-# ob_list = []
-
 combine = True
 
-# ob_list.append([0,0,0,0,0])
 env.car_moving(env.ob_list, startorfinish=True, combine=combine)
 
 while not episode_over:

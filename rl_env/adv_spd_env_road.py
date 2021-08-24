@@ -23,9 +23,12 @@ class Vehicle(object):
         self.action_limit_penalty = 1
         self.actiongap = 0
         self.timestep = 0
-        self.veh_info = []
+        
+        # 1: pos / 2: vel / 3: acc / 4: timestep / 5: reward
+        self.veh_info = np.zeros((2400, 5))
 
-    def update(self, acc, dt):
+
+    def update(self, acc, timestep, dt):
         self.jerk = abs(acc - self.acceleration) / dt
         self.acceleration = acc
 
@@ -36,9 +39,9 @@ class Vehicle(object):
 
         assert(self.velocity >= 0)
         assert(self.position >= 0)
-
-        self.veh_info.append([self.position, self.velocity, self.acceleration, self.timestep])
-
+        
+        # self.veh_info.append([self.position, self.velocity, self.acceleration, self.timestep])
+        self.veh_info[timestep] = [self.position, self.velocity, self.acceleration, self.timestep, 0]
 
 class SectionMaxSpeed(object):
     def __init__(self, track_length=500, unit_length=100, min_speed=30, max_speed=50):
@@ -478,7 +481,7 @@ class AdvSpdEnvRoad(gym.Env):
         else:
             # deceleration
             acceleration = max((max_speed - velocity)/self.dt, self.acc_min)
-
+ 
         # signal stopping
         sig_max_acc = self.calculate_max_acceleration()
         acceleration = min(sig_max_acc, acceleration)
@@ -491,7 +494,7 @@ class AdvSpdEnvRoad(gym.Env):
         applied_action = (action + 1) * self.unit_speed
         self.section.section_max_speed = applied_action / 3.6
 
-        reward_list = []
+        reward_list = np.zeros(self.timelimit)
         for _ in range(self.num_action_updates):
             # print("-----------------------------------------------------------------------------")
             # acceleration = self.get_veh_acceleration(self.vehicle.position, self.vehicle.velocity)
@@ -505,7 +508,7 @@ class AdvSpdEnvRoad(gym.Env):
 
             prev_position = self.vehicle.position
             # print("acceleration =", np.round(acceleration, 4))
-            self.vehicle.update(acceleration, self.dt)
+            self.vehicle.update(acceleration, self.timestep, self.dt)
 
             cur_position = self.vehicle.position
 
@@ -523,6 +526,7 @@ class AdvSpdEnvRoad(gym.Env):
             reward_with_coef = np.array(reward).dot(np.array(self.reward_coef))
             # print(reward_with_coef)
             self.ob_list.append([self.vehicle.position, self.vehicle.velocity, self.vehicle.acceleration, self.timestep, reward_with_coef])
+
             if render:
                 self.car_moving(self.ob_list, startorfinish=False, combine=True)
 
@@ -649,7 +653,7 @@ class AdvSpdEnvRoad(gym.Env):
         power += M * speed * accel + M * g * Cr * speed + 0.5 * rho * A * Ca * speed ** 3
         return - power * gain  # kilo Watts (KW)
 
-    def info_graph(self, ob_list, check_finish=0):
+    def info_graph(self, ob_list, check_finish=False):
         # t1 = time.time()
 
         pos = [ob[0] for ob in ob_list]
@@ -666,11 +670,22 @@ class AdvSpdEnvRoad(gym.Env):
         plt.rc('xtick', labelsize=15)
         plt.rc('ytick', labelsize=15)
 
-        fig = plt.figure(figsize=(15, 10))  # 여기서 에러... -> Fail to create pixmap with Tk_GetPixmap in TkImgPhotoInstanceSetSize
-        fig.clf()
-
+        if check_finish == True:
+            fig = plt.figure(figsize=(15,20))
+            fig.clf()
+            ax1 = fig.add_subplot(411)
+            ax2 = fig.add_subplot(412)
+            ax3 = fig.add_subplot(413)
+            ax4 = fig.add_subplot(414)
+        else:   
+            fig = plt.figure(figsize=(15, 10))
+            fig.clf()
+            ax1 = fig.add_subplot(221)
+            ax2 = fig.add_subplot(222)
+            ax3 = fig.add_subplot(223)
+            ax4 = fig.add_subplot(224)
+        
         # pos-vel
-        ax1 = fig.add_subplot(221)
         ax1.plot(pos, vel, lw=2, color='k')
         section_max_speed = self.section.section_max_speed
         unit_length = self.unit_length
@@ -684,7 +699,6 @@ class AdvSpdEnvRoad(gym.Env):
         ax1.set_ylim((0.0, 100))
 
         # pos-acc
-        ax2 = fig.add_subplot(222)
         ax2.plot(pos, acc, lw=2, color='k')
         ax2.set_title('x-a graph')
         ax2.set_xlabel('Position in m')
@@ -693,7 +707,6 @@ class AdvSpdEnvRoad(gym.Env):
         ax2.set_ylim((self.acc_min, self.acc_max))
 
         # x-t with signal phase
-        ax3 = fig.add_subplot(223)
         ax3.plot([x*self.dt for x in range(len(pos))], pos, lw=2, color='k')
 
         # xlim_max = self.timelimit
@@ -722,7 +735,6 @@ class AdvSpdEnvRoad(gym.Env):
         ax3.set_ylim((0, self.track_length))
 
         # t-reward
-        ax4 = fig.add_subplot(224)
         ax4.plot([x*self.dt for x in range(len(reward))], reward, lw=2, color='k')
         # xlim_max = int(max(100, len(pos)) * self.dt) + 1
         ax4.set_title('reward-t graph')
@@ -734,7 +746,7 @@ class AdvSpdEnvRoad(gym.Env):
 
         # print("make fig: {}".format(time.time()-t1))
 
-        if check_finish == 1:
+        if check_finish == True:
             plt.savefig('./simulate_gif/info_graph.png')
 
         return fig
