@@ -24,7 +24,7 @@ class Vehicle(object):
         self.actiongap = 0
         self.timestep = 0
         
-        # 1: pos / 2: vel / 3: acc / 4: timestep / 5: reward
+        # 1: pos / 2: vel / 3: acc / 4: timestep
         self.veh_info = np.zeros((2400, 5))
 
 
@@ -131,7 +131,7 @@ class TrafficSignal(object):
 
 class AdvSpdEnvRoad(gym.Env):
     png_list = []
-    ob_list = [[0, 0, 0, 0, 0]]
+    ob_list = np.zeros((2400, 5))
 
     def __init__(self, dt=0.1, action_dt=5, track_length=500.0, acc_max=2, acc_min=-3,
                  speed_max=50.0/3.6, dec_th=-3, stop_th=2, reward_coef=[1, 10, 1, 0.01, 0, 1, 1, 1],
@@ -494,7 +494,7 @@ class AdvSpdEnvRoad(gym.Env):
         applied_action = (action + 1) * self.unit_speed
         self.section.section_max_speed = applied_action / 3.6
 
-        reward_list = np.zeros(self.timelimit)
+        reward_list = np.zeros(self.num_action_updates)
         for _ in range(self.num_action_updates):
             # print("-----------------------------------------------------------------------------")
             # acceleration = self.get_veh_acceleration(self.vehicle.position, self.vehicle.velocity)
@@ -518,17 +518,14 @@ class AdvSpdEnvRoad(gym.Env):
                         self.violation = True
 
             reward = self._get_reward()
-            reward_list.append(reward)
+            reward_with_coef = np.array(reward).dot(np.array(self.reward_coef))
+            self.vehicle.veh_info[self.timestep][4] = [reward_with_coef]
+
             self.timestep += 1
 
-            # print(f"time = {self.timestep} || x = {self.vehicle.position}")
-
-            reward_with_coef = np.array(reward).dot(np.array(self.reward_coef))
-            # print(reward_with_coef)
-            self.ob_list.append([self.vehicle.position, self.vehicle.velocity, self.vehicle.acceleration, self.timestep, reward_with_coef])
 
             if render:
-                self.car_moving(self.ob_list, startorfinish=False, combine=True)
+                self.car_moving(self.vehicle.veh_info, startorfinish=False, combine=True)
 
             if self.vehicle.position > self.track_length:
                 break
@@ -653,14 +650,14 @@ class AdvSpdEnvRoad(gym.Env):
         power += M * speed * accel + M * g * Cr * speed + 0.5 * rho * A * Ca * speed ** 3
         return - power * gain  # kilo Watts (KW)
 
-    def info_graph(self, ob_list, check_finish=False):
+    def info_graph(self, veh_info, check_finish=False):
         # t1 = time.time()
 
-        pos = [ob[0] for ob in ob_list]
-        vel = [ob[1]*3.6 for ob in ob_list]
-        acc = [ob[2] for ob in ob_list]
-        step = [ob[3] for ob in ob_list]
-        reward = [ob[4] for ob in ob_list]
+        pos = veh_info[:, 0]
+        vel = veh_info[:, 1] * 3.6
+        acc = veh_info[:, 2]
+        step = veh_info[:, 3]
+        reward = veh_info[:, 4]
         print(step[-1]/10)
 
         # info figures
@@ -708,18 +705,6 @@ class AdvSpdEnvRoad(gym.Env):
 
         # x-t with signal phase
         ax3.plot([x*self.dt for x in range(len(pos))], pos, lw=2, color='k')
-
-        # xlim_max = self.timelimit
-        # for i in range(xlim_max):
-        #     if self.signal.is_green(i):
-        #         signal_color = 'g'
-        #     else:
-        #         signal_color = 'r'
-
-        #     ax3.plot([x*self.dt for x in range(int((i)/self.dt), int((i + 1)//self.dt)+1)],
-        #              [self.signal.location] * len(range(int(i/self.dt), int((i + 1)//self.dt)+1)),
-        #              color=signal_color
-        #              )
         green = self.signal.phase_length[True]
         red = self.signal.phase_length[False]
         cycle = green+red
@@ -742,6 +727,7 @@ class AdvSpdEnvRoad(gym.Env):
         ax4.set_ylabel('Reward')
         ax4.set_xlim((0.0, math.ceil(step[-1]/100)*10))
         ax4.set_ylim((-3.0, 3.0))
+
         plt.subplots_adjust(hspace=0.35)
 
         # print("make fig: {}".format(time.time()-t1))
@@ -751,10 +737,10 @@ class AdvSpdEnvRoad(gym.Env):
 
         return fig
 
-    def car_moving(self, ob_list, startorfinish=0, combine=False):
+    def car_moving(self, veh_info, startorfinish=0, combine=False):
         # t2 = time.time()
-        pos = [int(np.round(ob[0], 0)) for ob in ob_list]
-        step = [ob[3] for ob in ob_list]
+        pos = (np.round(veh_info[:, 0], 0)).astype(int)
+        step = veh_info[:, 3]
 
         car_filename = "./util/assets/track/img/car_80x40.png"
         signal_filename = "./util/assets/track/img/sign_60x94.png"
