@@ -22,11 +22,9 @@ class Vehicle(object):
         self.jerk = 0
         self.action_limit_penalty = 1
         self.actiongap = 0
-        self.timestep = 0
         
-        # 1: pos / 2: vel / 3: acc / 4: timestep
-        self.veh_info = np.zeros((2400, 5))
-
+        # 1: pos / 2: vel / 3: acc / 4: timestep / 5: reward / 6: max speed at the time in the section
+        self.veh_info = np.zeros((2400, 6))
 
     def update(self, acc, timestep, dt):
         self.jerk = abs(acc - self.acceleration) / dt
@@ -35,13 +33,13 @@ class Vehicle(object):
         # assert(np.round(self.velocity + acc * dt, -5) >= 0)
         self.velocity = self.velocity + acc * dt
         self.position = self.position + self.velocity * dt
-        # print(f'Position = {np.round(self.position, 4)} || Velocity = {np.round(self.velocity, 4)} || Acc = {np.round(self.acceleration, 4)} || Time = {self.timestep}')
+        # print(f'Position = {np.round(self.position, 4)} || Velocity = {np.round(self.velocity, 4)} || Acc = {np.round(self.acceleration, 4)} || Time = {timestep/10}')
 
         assert(self.velocity >= 0)
         assert(self.position >= 0)
         
         # self.veh_info.append([self.position, self.velocity, self.acceleration, self.timestep])
-        self.veh_info[timestep] = [self.position, self.velocity, self.acceleration, self.timestep, 0]
+        self.veh_info[timestep] = [self.position, self.velocity, self.acceleration, timestep, 0, 0]
 
 class SectionMaxSpeed(object):
     def __init__(self, track_length=500, unit_length=100, min_speed=30, max_speed=50):
@@ -61,6 +59,8 @@ class SectionMaxSpeed(object):
         # self.section_max_speed[2] = 50/3.6
         # self.section_max_speed[3] = 30/3.6
         # self.section_max_speed[4] = 50/3.6
+        self.sms_list = [[0, self.section_max_speed]]
+        # np.zeros((int(self.timelimit/self.action_dt/10), 2))
 
     def get_cur_max_speed(self, x):
         return self.section_max_speed[int(x/self.unit_length)]
@@ -130,13 +130,11 @@ class TrafficSignal(object):
 
 
 class AdvSpdEnvRoad(gym.Env):
-    png_list = []
-    ob_list = np.zeros((2400, 5))
+    # png_list = []
 
     def __init__(self, dt=0.1, action_dt=5, track_length=500.0, acc_max=2, acc_min=-3,
                  speed_max=50.0/3.6, dec_th=-3, stop_th=2, reward_coef=[1, 10, 1, 0.01, 0, 1, 1, 1],
                  timelimit=2400, unit_length=100, unit_speed=10, stochastic=False, min_location=250, max_location=350):
-        png_list = []
 
         # num_observations = 2
         self.dt = dt
@@ -198,7 +196,7 @@ class AdvSpdEnvRoad(gym.Env):
     def get_random_action(self):
         return self.action_space.sample()
 
-    def step(self, action, render=False):
+    def step(self, action):
         """
         Parameters
         ----------
@@ -227,15 +225,20 @@ class AdvSpdEnvRoad(gym.Env):
         """
         # prev_ob = self.state
 
-        reward_list = self._take_action(action, render=render)
-        # self.timestep += self.action_dt
+        reward_list = self._take_action(action)
+
+        print(self.timestep/10)
 
         ob = self._get_state()
+    
+        reward = reward_list.sum()
 
-        reward = np.array(np.array(reward_list).sum(0)).dot(np.array(self.reward_coef))
+        self.reward_at_time[int(self.timestep/self.action_dt/10)-1] = [self.timestep/10, reward]
+        
+        episode_over = (self.vehicle.position > self.track_length) or (self.timestep > self.timelimit)
 
-        episode_over = self.vehicle.position > self.track_length
-
+        if episode_over == True:
+            self.reward_at_time = self.reward_at_time[self.reward_at_time[:,0] != 0]
         return ob, reward, episode_over, {'vehicle_ob': self.vehicle.veh_info[-1]}
 
     def _get_state(self):
@@ -246,8 +249,8 @@ class AdvSpdEnvRoad(gym.Env):
                       self.section.get_next_max_speed(self.vehicle.position),
                       self.section.get_distance_to_next_section(self.vehicle.position),
                       self.signal.location,
-                      self.signal.get_greentime(int(self.vehicle.timestep*self.dt))[0] / self.dt - self.vehicle.timestep,
-                      self.signal.get_greentime(int(self.vehicle.timestep*self.dt))[1] / self.dt - self.vehicle.timestep
+                      self.signal.get_greentime(int(self.timestep*self.dt))[0] / self.dt - self.timestep,
+                      self.signal.get_greentime(int(self.timestep*self.dt))[1] / self.dt - self.timestep
                       ]
         # else:
         #     self.state = [self.vehicle.position,
@@ -277,6 +280,8 @@ class AdvSpdEnvRoad(gym.Env):
         self.reward = 0
         self.done = False
         self.info = {}
+        self.png_list = []
+        self.reward_at_time = np.zeros((int(self.timelimit/self.action_dt/10), 2))
 
         return self.state
 
@@ -352,7 +357,7 @@ class AdvSpdEnvRoad(gym.Env):
             info.position = (clearance_x - 40, 225 + clearance_y)
             self.viewer.components['info'] = info
 
-        if self.signal.is_green(int(self.vehicle.timestep * self.dt)):
+        if self.signal.is_green(int(self.timestep * self.dt)):
             self.viewer.components['signal'].color = (0, 255, 0)
         else:
             self.viewer.components['signal'].color = (255, 0, 0)
@@ -490,13 +495,15 @@ class AdvSpdEnvRoad(gym.Env):
         assert(acceleration <= self.acc_max)
         return acceleration
 
-    def _take_action(self, action, render=False):
+    def _take_action(self, action):
         applied_action = (action + 1) * self.unit_speed
         self.section.section_max_speed = applied_action / 3.6
 
         reward_list = np.zeros(self.num_action_updates)
+        i = 0 
         for _ in range(self.num_action_updates):
-            # print("-----------------------------------------------------------------------------")
+            self.timestep += 1
+
             # acceleration = self.get_veh_acceleration(self.vehicle.position, self.vehicle.velocity)
             acceleration = self.get_veh_acc_idm(self.vehicle.position, self.vehicle.velocity)
 
@@ -519,15 +526,16 @@ class AdvSpdEnvRoad(gym.Env):
 
             reward = self._get_reward()
             reward_with_coef = np.array(reward).dot(np.array(self.reward_coef))
-            self.vehicle.veh_info[self.timestep][4] = [reward_with_coef]
-
-            self.timestep += 1
-
-
-            if render:
-                self.car_moving(self.vehicle.veh_info, startorfinish=False, combine=True)
+            reward_list[i] = reward_with_coef
+            i += 1
+            self.vehicle.veh_info[self.timestep][4] = reward_with_coef
+            
+            self.section.sms_list.append([self.timestep/10, self.section.section_max_speed])
 
             if self.vehicle.position > self.track_length:
+                break
+            
+            if self.timestep > self.timelimit:
                 break
 
         assert(self.vehicle.velocity >= 0)
@@ -610,7 +618,7 @@ class AdvSpdEnvRoad(gym.Env):
         max_acc = spd_max_acc if max_acc > spd_max_acc else max_acc
         # print("max_acc = ", np.round(max_acc, 4))
         # print("section max speed =", np.round(self.section.get_cur_max_speed(self.vehicle.position), 4))
-        if not self.signal.is_green(int(self.vehicle.timestep * self.dt)):
+        if not self.signal.is_green(int(self.timestep * self.dt)):
             if self.vehicle.position < self.signal.location:
                 mild_stopping_distance = -(self.vehicle.velocity + self.acc_max * self.dt) ** 2 / (2 * (dec_th))
                 distance_to_signal = self.signal.location - self.stop_th - self.vehicle.position
@@ -652,13 +660,15 @@ class AdvSpdEnvRoad(gym.Env):
 
     def info_graph(self, veh_info, check_finish=False):
         # t1 = time.time()
-
         pos = veh_info[:, 0]
-        vel = veh_info[:, 1] * 3.6
+        vel = veh_info[:, 1]*3.6
         acc = veh_info[:, 2]
-        step = veh_info[:, 3]
-        reward = veh_info[:, 4]
-        print(step[-1]/10)
+        step = veh_info[:, 3]/10
+        # reward = veh_info[:, 4]
+
+        reward = self.reward_at_time[self.reward_at_time[:,0] <= step[-1]]
+        # print(reward)
+        print("time:", step[-1])
 
         # info figures
         plt.rc('font', size=15)
@@ -675,7 +685,7 @@ class AdvSpdEnvRoad(gym.Env):
             ax3 = fig.add_subplot(413)
             ax4 = fig.add_subplot(414)
         else:   
-            fig = plt.figure(figsize=(15, 10))
+            fig = plt.figure(figsize=(15,10))
             fig.clf()
             ax1 = fig.add_subplot(221)
             ax2 = fig.add_subplot(222)
@@ -684,7 +694,7 @@ class AdvSpdEnvRoad(gym.Env):
         
         # pos-vel
         ax1.plot(pos, vel, lw=2, color='k')
-        section_max_speed = self.section.section_max_speed
+        section_max_speed = self.section.sms_list[int(step[-1]*10)][1]
         unit_length = self.unit_length
         for i in range(len(section_max_speed)):
             ax1.plot(np.linspace(i*unit_length, (i+1)*unit_length, unit_length*10),
@@ -701,7 +711,7 @@ class AdvSpdEnvRoad(gym.Env):
         ax2.set_xlabel('Position in m')
         ax2.set_ylabel('Acceleration in m/s²')
         ax2.set_xlim((0.0, self.track_length))
-        ax2.set_ylim((self.acc_min, self.acc_max))
+        ax2.set_ylim((self.acc_min-1, self.acc_max+1))
 
         # x-t with signal phase
         ax3.plot([x*self.dt for x in range(len(pos))], pos, lw=2, color='k')
@@ -716,17 +726,29 @@ class AdvSpdEnvRoad(gym.Env):
         ax3.set_title('x-t graph')
         ax3.set_xlabel('Time in s')
         ax3.set_ylabel('Position in m')
-        ax3.set_xlim((0.0, math.ceil(step[-1]/100)*10))
+        # if step[-1] == 0:
+        #     ax3.set_xlim((0.0, 10))
+        # else:
+        #     ax3.set_xlim((0.0, math.ceil(step[-1]/100)*10))
+        ax3.set_xlim((0.0, math.ceil(self.timestep/10)))
         ax3.set_ylim((0, self.track_length))
 
         # t-reward
-        ax4.plot([x*self.dt for x in range(len(reward))], reward, lw=2, color='k')
+        # ax4.plot(step, reward, lw=2, color='k')
+        ax4.plot([-10, 240], [0, 0], lw=1, color='k')
+        ax4.plot(reward[:,0], reward[:,1], lw=2, color='k', alpha=0.5)
+        ax4.scatter(reward[:,0], reward[:,1], color='k')
         # xlim_max = int(max(100, len(pos)) * self.dt) + 1
         ax4.set_title('reward-t graph')
         ax4.set_xlabel('Time in s')
         ax4.set_ylabel('Reward')
-        ax4.set_xlim((0.0, math.ceil(step[-1]/100)*10))
-        ax4.set_ylim((-3.0, 3.0))
+        # if step[-1] == 0:
+        #     ax4.set_xlim((0.0, 10))
+        # else:
+        #     ax4.set_xlim((0.0, math.ceil(step[-1]/100)*10))
+        ax4.set_xlim((0.0, math.ceil(self.timestep/10)))
+        reward_min = np.round(np.min(self.reward_at_time[:,1]), 0)-2
+        ax4.set_ylim((reward_min, 3.0))
 
         plt.subplots_adjust(hspace=0.35)
 
@@ -737,10 +759,12 @@ class AdvSpdEnvRoad(gym.Env):
 
         return fig
 
-    def car_moving(self, veh_info, startorfinish=0, combine=False):
+    def car_moving(self, veh_info, startorfinish=False, combine=False):
         # t2 = time.time()
         pos = (np.round(veh_info[:, 0], 0)).astype(int)
         step = veh_info[:, 3]
+        # print("pos:", pos)
+        # print("step:", step)
 
         car_filename = "./util/assets/track/img/car_80x40.png"
         signal_filename = "./util/assets/track/img/sign_60x94.png"
@@ -781,7 +805,7 @@ class AdvSpdEnvRoad(gym.Env):
         background.paste(start, start_position)
         background.paste(finish, finish_position)
         signal_draw = ImageDraw.Draw(signal)
-        if self.signal.is_green(int(self.vehicle.timestep * self.dt)):
+        if self.signal.is_green(int(step[-1] * self.dt)):
             signal_draw.ellipse((0, 0, 60, 60,), (0, 255, 0))  # green signal
         else:
             signal_draw.ellipse((0, 0, 60, 60,), (255, 0, 0))  # red signal
@@ -796,14 +820,14 @@ class AdvSpdEnvRoad(gym.Env):
 
         if combine == True:
             # t3 = time.time()
-            graph = fig2img(self.info_graph(ob_list))
+            graph = fig2img(self.info_graph(veh_info))
             plt.close()
             background.paste(graph, (0, 50))
             # print("convert: {}".format(time.time()-t3))
 
         draw.text((10, 10), "Time Step: {}s".format(step[-1]/10), (0, 0, 0), timefont)
 
-        if startorfinish == 1:
+        if startorfinish == True:
             for i in range(100):
                 self.png_list.append(background)
 

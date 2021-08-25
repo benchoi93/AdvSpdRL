@@ -27,14 +27,12 @@ env: AdvSpdEnvRoad = pickle.load(open(os.path.join('params', f'{modelname}{cuda}
 model = globals()[modelname]("MlpPolicy", env, verbose=1, device='cpu')
 list_of_files = glob.glob(os.path.join('params', f'{modelname}{cuda}/*'))
 latest_file = max(list_of_files, key=os.path.getmtime)
-model = model.load(latest_file, device='cpu')
+# model = model.load(latest_file, device='cpu')
 # env = env
 
 ob = env.reset()
 episode_over = False
 combine = True
-
-env.car_moving(env.ob_list, startorfinish=True, combine=combine)
 
 while not episode_over:
     t = time.time()
@@ -53,13 +51,23 @@ while not episode_over:
     # print('-------------------------------------')
     # input()
 
-env.car_moving(env.ob_list, startorfinish=True, combine=combine)
-env.info_graph(env.ob_list, check_finish=True)
+print("-------------------------------------")
+# print(env.reward_at_time)
+env.car_moving(env.vehicle.veh_info[:1], startorfinish=True, combine=combine)
+
+for i in range(env.timestep):
+    env.car_moving(env.vehicle.veh_info[:i+2], startorfinish=False, combine=True)
+
+env.car_moving(env.vehicle.veh_info[:env.timestep+1], startorfinish=True, combine=combine)
+env.info_graph(env.vehicle.veh_info[:env.timestep+1], check_finish=True)
+
+finish = time.time()
+
 env.make_gif(path=f'simulate_gif/{modelname}{cuda}/simulate.gif')
 
 print('-------------------------------------')
 print("reward coef: ", env.reward_coef)
-print("reward: {}".format(sum([x[4] for x in env.ob_list])))
-print("execution time: {}".format(np.round(time.time()-start), 5))
-print("# of episodes: {}".format(len(env.ob_list)))
-print("execution time per episode: {}".format((time.time()-start)/len(env.ob_list)))
+print("reward: {}".format((env.vehicle.veh_info[:, 4]).sum()))
+print("execution time: {}".format(np.round(finish-start), 5))
+print("# of episodes: {}".format(env.timestep))
+print("execution time per episode: {}".format((finish-start)/env.timestep))
