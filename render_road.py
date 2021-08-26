@@ -51,8 +51,11 @@ while not episode_over:
     # print('-------------------------------------')
     # input()
 
+print(env.timestep/10)
 print("-------------------------------------")
 # print(env.reward_at_time)
+# print(np.round(env.section.sms_list[-1][1], 2))
+
 env.car_moving(env.vehicle.veh_info[:1], startorfinish=True, combine=combine)
 
 for i in range(env.timestep):

@@ -227,7 +227,7 @@ class AdvSpdEnvRoad(gym.Env):
 
         reward_list = self._take_action(action)
 
-        print(self.timestep/10)
+        # print(self.timestep/10)
 
         ob = self._get_state()
     
@@ -532,6 +532,8 @@ class AdvSpdEnvRoad(gym.Env):
             
             self.section.sms_list.append([self.timestep/10, self.section.section_max_speed])
 
+            self.vehicle.veh_info[self.timestep][5] = self.section.section_max_speed[math.floor(self.vehicle.position/self.unit_length)]
+
             if self.vehicle.position > self.track_length:
                 break
             
@@ -665,8 +667,9 @@ class AdvSpdEnvRoad(gym.Env):
         acc = veh_info[:, 2]
         step = veh_info[:, 3]/10
         # reward = veh_info[:, 4]
-
         reward = self.reward_at_time[self.reward_at_time[:,0] <= step[-1]]
+        maxspeed = veh_info[:, 5]*3.6
+
         # print(reward)
         print("time:", step[-1])
 
@@ -693,12 +696,16 @@ class AdvSpdEnvRoad(gym.Env):
             ax4 = fig.add_subplot(224)
         
         # pos-vel
-        ax1.plot(pos, vel, lw=2, color='k')
         section_max_speed = self.section.sms_list[int(step[-1]*10)][1]
         unit_length = self.unit_length
-        for i in range(len(section_max_speed)):
-            ax1.plot(np.linspace(i*unit_length, (i+1)*unit_length, unit_length*10),
-                     [section_max_speed[i]*3.6]*(unit_length*10), lw=2, color='r')
+        if check_finish == False:
+            for i in range(len(section_max_speed)):
+                ax1.plot(np.linspace(i*unit_length, (i+1)*unit_length, unit_length*10),
+                        [section_max_speed[i]*3.6]*(unit_length*10), lw=2, color='r')
+
+        ax1.plot(pos, maxspeed, lw=1.5, color='r', alpha=0.5)
+        ax1.plot(pos, vel, lw=2, color='k')
+        
         ax1.set_title('x-v graph')
         ax1.set_xlabel('Position in m')
         ax1.set_ylabel('Velocity in km/h')
@@ -735,7 +742,7 @@ class AdvSpdEnvRoad(gym.Env):
 
         # t-reward
         # ax4.plot(step, reward, lw=2, color='k')
-        ax4.plot([-10, 240], [0, 0], lw=1, color='k')
+        # ax4.plot([-10, 240], [0, 0], lw=1, color='k')
         ax4.plot(reward[:,0], reward[:,1], lw=2, color='k', alpha=0.5)
         ax4.scatter(reward[:,0], reward[:,1], color='k')
         # xlim_max = int(max(100, len(pos)) * self.dt) + 1
@@ -828,14 +835,14 @@ class AdvSpdEnvRoad(gym.Env):
         draw.text((10, 10), "Time Step: {}s".format(step[-1]/10), (0, 0, 0), timefont)
 
         if startorfinish == True:
-            for i in range(100):
+            for i in range(80):
                 self.png_list.append(background)
 
         else:
             self.png_list.append(background)
 
     def make_gif(self, path="./simulate_gif/simulation.gif"):
-        self.png_list[0].save(path, save_all=True, append_images=self.png_list[1:], optimize=False, duration=20, loop=1)
+        self.png_list[0].save(path, save_all=True, append_images=self.png_list[1:], optimize=False, duration=30, loop=1)
 
 
 def fig2img(fig):
