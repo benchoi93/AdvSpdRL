@@ -703,14 +703,14 @@ class AdvSpdEnvRoad(gym.Env):
                 ax1.plot(np.linspace(i*unit_length, (i+1)*unit_length, unit_length*10),
                         [section_max_speed[i]*3.6]*(unit_length*10), lw=2, color='r')
 
-        ax1.plot(pos, maxspeed, lw=1.5, color='r', alpha=0.5)
         ax1.plot(pos, vel, lw=2, color='k')
+        ax1.plot(pos, maxspeed, lw=1.5, color='b', alpha=0.3)
         
         ax1.set_title('x-v graph')
         ax1.set_xlabel('Position in m')
         ax1.set_ylabel('Velocity in km/h')
         ax1.set_xlim((0.0, self.track_length))
-        ax1.set_ylim((0.0, 100))
+        ax1.set_ylim((0.0, 110))
 
         # pos-acc
         ax2.plot(pos, acc, lw=2, color='k')
