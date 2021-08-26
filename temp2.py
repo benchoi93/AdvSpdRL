@@ -102,7 +102,12 @@ print(aa[aa[:,1] < 14])
 
 aa = []
 
-for i in range(10):
+for i in range(5):
     aa.append([i, [i, i*2, i*3, i*4]])
 
 print(aa)
+
+bb = np.linspace(0,10,101)
+print(bb)
+print(np.round(bb, 0))
+print(np.trunc(bb))
