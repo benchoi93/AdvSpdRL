@@ -64,7 +64,7 @@ env.info_graph(env.vehicle.veh_info[:env.timestep+1], check_finish=True)
 
 finish = time.time()
 
-env.make_gif(path=f'simulate_gif/{modelname}{cuda}/simulate.gif')
+# env.make_gif(path=f'simulate_gif/{modelname}{cuda}/simulate.gif')
 
 print('-------------------------------------')
 print("reward coef: ", env.reward_coef)

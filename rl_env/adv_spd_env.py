@@ -653,7 +653,7 @@ class AdvSpdEnv(gym.Env):
 
         return fig
 
-      def car_moving(self, ob_list, startorfinish=0, combine=False):
+    def car_moving(self, ob_list, startorfinish=0, combine=False):
         # t2 = time.time()
         pos = [int(np.round(ob[0], 0)) for ob in ob_list]
         step = [ob[3] for ob in ob_list]
