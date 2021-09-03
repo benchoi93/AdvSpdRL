@@ -1,4 +1,5 @@
 import os
+os.environ['KMP_DUPLICATE_LIB_OK']='True'
 import glob
 import pickle
 import matplotlib.pyplot as plt
@@ -39,6 +40,7 @@ while not episode_over:
     # action = np.array(env.get_random_action())
     # action, _ = model.predict(ob)
     action = env.get_random_action()
+    print(action)
     # print("action space: ", action)
     # action = np.array(min(5, (50/3.6 - ob[1]) / env.dt))
     # print(action)
@@ -64,7 +66,7 @@ env.info_graph(env.vehicle.veh_info[:env.timestep+1], check_finish=True)
 
 finish = time.time()
 
-# env.make_gif(path=f'simulate_gif/{modelname}{cuda}/simulate.gif')
+env.make_gif(path=f'simulate_gif/{modelname}{cuda}/simulate.gif')
 
 print('-------------------------------------')
 print("reward coef: ", env.reward_coef)

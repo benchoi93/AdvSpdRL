@@ -516,7 +516,9 @@ class AdvSpdEnvRoadMulti(gym.Env):
         num_action_in = (min(cur_idx+self.num_action_unit, len(self.section.section_max_speed)-1)) - cur_idx
         self.section.section_max_speed[cur_idx:(
             min(cur_idx+self.num_action_unit, len(self.section.section_max_speed)-1))] = applied_action[:num_action_in] / 3.6
-
+        # print(cur_idx)
+        # print(applied_action)
+        # print(self.section.section_max_speed)
         reward_list = np.zeros(self.num_action_updates)
         i = 0
         for _ in range(self.num_action_updates):
@@ -692,14 +694,14 @@ class AdvSpdEnvRoadMulti(gym.Env):
 
         # print(reward)
         print("time:", step[-1])
-
+    
         # info figures
         plt.rc('font', size=15)
         plt.rc('axes', titlesize=22)
         plt.rc('axes', labelsize=15)
         plt.rc('xtick', labelsize=15)
         plt.rc('ytick', labelsize=15)
-
+        
         if check_finish == True:
             fig = plt.figure(figsize=(15, 20))
             fig.clf()
@@ -714,7 +716,7 @@ class AdvSpdEnvRoadMulti(gym.Env):
             ax2 = fig.add_subplot(222)
             ax3 = fig.add_subplot(223)
             ax4 = fig.add_subplot(224)
-
+        
         # pos-vel
         section_max_speed = self.section.sms_list[int(step[-1]*10)][1]
         print(section_max_speed)
@@ -734,7 +736,7 @@ class AdvSpdEnvRoadMulti(gym.Env):
         ax1.set_ylabel('Velocity in km/h')
         ax1.set_xlim((0.0, self.track_length))
         ax1.set_ylim((0.0, 110))
-
+        
         # pos-acc
         ax2.plot(pos, acc, lw=2, color='k')
         ax2.set_title('x-a graph')
@@ -742,7 +744,7 @@ class AdvSpdEnvRoadMulti(gym.Env):
         ax2.set_ylabel('Acceleration in m/s²')
         ax2.set_xlim((0.0, self.track_length))
         ax2.set_ylim((self.acc_min-1, self.acc_max+1))
-
+        
         # x-t with signal phase
         ax3.plot([x*self.dt for x in range(len(pos))], pos, lw=2, color='k')
         green = self.signal[0].phase_length[True]
@@ -763,7 +765,7 @@ class AdvSpdEnvRoadMulti(gym.Env):
         #     ax3.set_xlim((0.0, math.ceil(step[-1]/100)*10))
         ax3.set_xlim((0.0, math.ceil(self.timestep/10)))
         ax3.set_ylim((0, self.track_length))
-
+        
         # t-reward
         # ax4.plot(step, reward, lw=2, color='k')
         # ax4.plot([-10, 240], [0, 0], lw=1, color='k')
