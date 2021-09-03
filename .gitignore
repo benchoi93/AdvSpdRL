@@ -135,3 +135,4 @@ simulate_gif/
 *.zip
 *.pkl
 simulate_gif/
+*.gif
