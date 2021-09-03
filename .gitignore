@@ -130,4 +130,9 @@ dmypy.json
 params/
 log/
 
+# simulate_gif
+simulate_gif/
+*.zip
+*.pkl
+simulate_gif/
 *.gif

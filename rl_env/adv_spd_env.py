@@ -169,11 +169,9 @@ class AdvSpdEnv(gym.Env):
 
     def step(self, action):
         """
-
         Parameters
         ----------
         action :
-
         Returns
         -------
         ob, reward, episode_over, info : tuple
@@ -510,10 +508,14 @@ class AdvSpdEnv(gym.Env):
             if self.vehicle.position < self.signal.location:
                 mild_stopping_distance = -(self.vehicle.velocity + self.acc_max * self.dt) ** 2 / (2 * (dec_th))
                 distance_to_signal = self.signal.location - self.stop_th - self.vehicle.position
-
+                
                 if distance_to_signal < mild_stopping_distance:
-                    max_acc = -(self.vehicle.velocity + self.acc_max * self.dt) ** 2 / (2 * (distance_to_signal))
+                    if distance_to_signal == 0:
+                        max_acc = 0
+                    else:
+                        max_acc = -(self.vehicle.velocity ) ** 2 / (2 * (distance_to_signal))
 
+        assert(max_acc >= self.acc_min)
         return max_acc
 
     def get_veh_acc_idm(self, position, velocity):
@@ -544,7 +546,6 @@ class AdvSpdEnv(gym.Env):
 
     def energy_consumption(self, gain=0.001):
         """Calculate power consumption of a vehicle.
-
         Assumes vehicle is an average sized vehicle.
         The power calculated here is the lower bound of the actual power consumed
         by a vehicle.
@@ -652,7 +653,7 @@ class AdvSpdEnv(gym.Env):
 
         return fig
 
-    def car_moving(self, ob_list, startorfinish=0, combine=False):
+      def car_moving(self, ob_list, startorfinish=0, combine=False):
         # t2 = time.time()
         pos = [int(np.round(ob[0], 0)) for ob in ob_list]
         step = [ob[3] for ob in ob_list]
@@ -682,7 +683,8 @@ class AdvSpdEnv(gym.Env):
         car_position = (zero_x - 80, canvas[1] - clearence[1] + 30)
 
         try:
-            font = ImageFont.truetype('arial.ttf', 20)
+            font = ImageFont.truetype('arial.ttf', 25)
+            timefont = ImageFont.truetype('arial.ttf', 40)
         except:
             font = ImageFont.load_default()
 
@@ -712,8 +714,9 @@ class AdvSpdEnv(gym.Env):
             graph = fig2img(self.info_graph(ob_list))
             plt.close()
             background.paste(graph, (0, 50))
-
             print("convert: {}".format(time.time()-t3))
+        
+        draw.text((10, 10), "Time Step: {}s".format(step[-1]/10), (0,0,0), timefont)
 
         if startorfinish == 1:
             for i in range(100):
@@ -721,13 +724,9 @@ class AdvSpdEnv(gym.Env):
 
         else:
             self.png_list.append(background)
-
+        
     def make_gif(self, path="./simulate_gif/simulation.gif"):
         self.png_list[0].save(path, save_all=True, append_images=self.png_list[1:], optimize=False, duration=20, loop=1)
-
-    # def make_graphgif(self, path="./simulate_gif/simulation.gif"):
-    #     self.png_list[0].save(path, save_all=True, append_images=self.png_list[1:], optimize=False, duration=20, loop=1)
-
 
 def fig2img(fig):
     t4 = time.time()
@@ -736,5 +735,5 @@ def fig2img(fig):
     buf.seek(0)
     img = Image.open(buf)
 
-    # print("fig2img: {}".format(time.time()-t4))
+    print("fig2img: {}".format(time.time()-t4))
     return img

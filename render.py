@@ -37,7 +37,7 @@ ob = env.reset()
 episode_over = False
 ob_list = []
 
-combine = False
+combine = True
 
 ob_list.append([0,0,0,0,0])
 env.car_moving(ob_list, startorfinish=1, combine=combine)
@@ -46,6 +46,7 @@ while not episode_over:
     t = time.time()
     # action = np.array(env.get_random_action())
     action, _ = model.predict(ob)
+    print("action space: ", action)
     # action = np.array(min(5, (50/3.6 - ob[1]) / env.dt))
     # print(action)
     ob, reward, episode_over, info = env.step(action)
@@ -53,7 +54,7 @@ while not episode_over:
     # env.render(visible=True)
     env.car_moving(ob_list, startorfinish=0, combine=combine)
     check_start = 0
-    print('-------------------------------------')
+    # print('-------------------------------------')
     # input()
 
 env.car_moving(ob_list, startorfinish=1, combine=combine)

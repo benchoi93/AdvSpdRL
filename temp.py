@@ -4,7 +4,7 @@
 # import matplotlib.image as mpimg
 # import matplotlib.pyplot as plt
 # import matplotlib.animation as mpani
-# import numpy as np
+import numpy as np
 
 
 from PIL import Image, ImageDraw, ImageFont
@@ -35,7 +35,7 @@ car_position = (zero_x-80, canvas[1]-clearence[1]+30)
 font = ImageFont.truetype('arial.ttf', 20)
 background = Image.new('RGB', canvas, (200, 200, 200))
 draw = ImageDraw.Draw(background)
-for i in range(track_length//50+1):
+for i in range(int(track_length//50+1)):
     draw.text((zero_x+int(scale_x*(50*i-pos)), canvas[1]-90), "{}m".format(50*i), (0, 0, 0), font)
 draw.line((0, 300, 1500, 300), (0, 0, 0), width=5)
 background.paste(start, start_position)
@@ -43,8 +43,12 @@ background.paste(finish, finish_position)
 background.paste(signal, signal_position, signal)
 background.paste(car, car_position, car)
 
+a = np.zeros(1)
 
-background.show()
+a[0] = background
+
+# background.show()
+print(a)
 
 
 
