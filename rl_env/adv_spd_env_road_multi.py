@@ -742,14 +742,15 @@ class AdvSpdEnvRoadMulti(gym.Env):
 
         # x-t with signal phase
         ax3.plot([x*self.dt for x in range(len(pos))], pos, lw=2, color='k')
-        green = self.signal.phase_length[True]
-        red = self.signal.phase_length[False]
+        green = self.signal[0].phase_length[True]
+        red = self.signal[0].phase_length[False]
         cycle = green+red
-        for i in range(3):
-            ax3.plot(np.linspace(cycle*i-(cycle-self.signal.offset), cycle*i-(cycle-self.signal.offset)+green, green*10),
-                     [self.signal.location]*(green*10), lw=2, color='g')
-            ax3.plot(np.linspace(cycle*i-(cycle-self.signal.offset)+green, cycle*i-(cycle-self.signal.offset)+cycle, red*10),
-                     [self.signal.location]*(red*10), lw=2, color='r')
+        for j in range(self.num_signal):
+            for i in range(int(self.timelimit/10/cycle)+1):
+                ax3.plot(np.linspace(cycle*i-(cycle-self.signal[j].offset), cycle*i-(cycle-self.signal[j].offset)+green, green*10),
+                        [self.signal[j].location]*(green*10), lw=2, color='g')
+                ax3.plot(np.linspace(cycle*i-(cycle-self.signal[j].offset)+green, cycle*i-(cycle-self.signal[j].offset)+cycle, red*10),
+                        [self.signal[j].location]*(red*10), lw=2, color='r')
         ax3.set_title('x-t graph')
         ax3.set_xlabel('Time in s')
         ax3.set_ylabel('Position in m')
