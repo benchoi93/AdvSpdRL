@@ -129,7 +129,7 @@ class TrafficSignal(object):
         return timestep % self.cycle_length >= self.get_greentime(timestep % self.cycle_length)[0]
 
 
-class AdvSpdEnvRoad(gym.Env):
+class AdvSpdEnvDesspd(gym.Env):
     # png_list = []
 
     def __init__(self, dt=0.1, action_dt=5, track_length=500.0, acc_max=2, acc_min=-3,
@@ -156,7 +156,7 @@ class AdvSpdEnvRoad(gym.Env):
         self.max_location = max_location
 
         # self.action_space = spaces.Tuple(([spaces.Discrete(int(speed_max * 3.6 / unit_speed) + 1) for i in range(int(track_length/unit_length)+1)]))
-        self.action_space = spaces.MultiDiscrete([int(speed_max*2 * 3.6 / unit_speed)] * (int(track_length/unit_length)+1))
+        self.action_space = spaces.Box(low=0, high=speed_max, shape=[1, ])
 
         self.reset()
 
