@@ -55,6 +55,7 @@ class SectionMaxSpeed(object):
         self.num_section = int(self.track_length / self.unit_length)
         assert(self.num_section > 0)
         self.section_max_speed = self.min_speed + np.random.random(size=self.num_section+1) * (self.max_speed - self.min_speed)
+        print(self.section_max_speed)
         # self.section_max_speed[0] = 50/3.6
         # self.section_max_speed[1] = 30/3.6
         # self.section_max_speed[2] = 50/3.6
@@ -285,7 +286,7 @@ class AdvSpdEnvRoadMulti(gym.Env):
         self.section = SectionMaxSpeed(self.track_length, self.unit_length)
         self.section_input = SectionMaxSpeed(self.track_length, self.unit_length)
         # self.section_input.section_max_speed
-
+        
         self.timestep = 0
         self.violation = False
 
@@ -719,14 +720,19 @@ class AdvSpdEnvRoadMulti(gym.Env):
         
         # pos-vel
         section_max_speed = self.section.sms_list[int(step[-1]*10)][1]
-        print(section_max_speed)
         unit_length = self.unit_length
-        cur_idx = int(self.vehicle.position/self.unit_length)
+        cur_idx = int(pos[-1]/self.unit_length)
+        print("current idx:", cur_idx)
+        print(min(cur_idx+self.num_action_unit+1, len(self.section.section_max_speed)))
         if check_finish == False:
             # for i in range(len(section_max_speed)):
-            for i in range(cur_idx, min(cur_idx+self.num_action_unit+1, len(self.section.section_max_speed)-1)):
-                ax1.plot(np.linspace(i*unit_length, (i+1)*unit_length, unit_length*10),
-                         [section_max_speed[i]*3.6]*(unit_length*10), lw=2, color='r')
+            for i in range(cur_idx, min(cur_idx+self.num_action_unit+1, len(self.section.section_max_speed))):
+                if i == cur_idx:
+                    ax1.plot(np.linspace(i*unit_length, (i+1)*unit_length, unit_length*10),
+                         [section_max_speed[i]*3.6]*(unit_length*10), lw=1.5, color='b')
+                else:
+                    ax1.plot(np.linspace(i*unit_length, (i+1)*unit_length, unit_length*10),
+                            [section_max_speed[i]*3.6]*(unit_length*10), lw=1.5, color='r')
 
         ax1.plot(pos, vel, lw=2, color='k')
         ax1.plot(pos, maxspeed, lw=1.5, color='b', alpha=0.3)
