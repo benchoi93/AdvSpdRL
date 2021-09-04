@@ -60,6 +60,8 @@ env.car_moving(env.vehicle.veh_info[:1], startorfinish=True, combine=combine)
 
 for i in range(env.timestep):
     env.car_moving(env.vehicle.veh_info[:i+2], startorfinish=False, combine=True)
+    # if i == 300:
+    #     break
 
 env.car_moving(env.vehicle.veh_info[:env.timestep+1], startorfinish=True, combine=combine)
 env.info_graph(env.vehicle.veh_info[:env.timestep+1], check_finish=True)
