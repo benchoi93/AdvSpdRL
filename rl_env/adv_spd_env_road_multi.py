@@ -516,7 +516,9 @@ class AdvSpdEnvRoadMulti(gym.Env):
         num_action_in = (min(cur_idx+self.num_action_unit, len(self.section.section_max_speed)-1)) - cur_idx
         self.section.section_max_speed[cur_idx:(
             min(cur_idx+self.num_action_unit, len(self.section.section_max_speed)-1))] = applied_action[:num_action_in] / 3.6
-
+        # print(cur_idx)
+        # print(applied_action)
+        # print(self.section.section_max_speed)
         reward_list = np.zeros(self.num_action_updates)
         i = 0
         for _ in range(self.num_action_updates):
@@ -692,14 +694,14 @@ class AdvSpdEnvRoadMulti(gym.Env):
 
         # print(reward)
         print("time:", step[-1])
-
+    
         # info figures
         plt.rc('font', size=15)
         plt.rc('axes', titlesize=22)
         plt.rc('axes', labelsize=15)
         plt.rc('xtick', labelsize=15)
         plt.rc('ytick', labelsize=15)
-
+        
         if check_finish == True:
             fig = plt.figure(figsize=(15, 20))
             fig.clf()
@@ -714,12 +716,15 @@ class AdvSpdEnvRoadMulti(gym.Env):
             ax2 = fig.add_subplot(222)
             ax3 = fig.add_subplot(223)
             ax4 = fig.add_subplot(224)
-
+        
         # pos-vel
         section_max_speed = self.section.sms_list[int(step[-1]*10)][1]
+        print(section_max_speed)
         unit_length = self.unit_length
+        cur_idx = int(self.vehicle.position/self.unit_length)
         if check_finish == False:
-            for i in range(len(section_max_speed)):
+            # for i in range(len(section_max_speed)):
+            for i in range(cur_idx, min(cur_idx+self.num_action_unit+1, len(self.section.section_max_speed)-1)):
                 ax1.plot(np.linspace(i*unit_length, (i+1)*unit_length, unit_length*10),
                          [section_max_speed[i]*3.6]*(unit_length*10), lw=2, color='r')
 
@@ -731,7 +736,7 @@ class AdvSpdEnvRoadMulti(gym.Env):
         ax1.set_ylabel('Velocity in km/h')
         ax1.set_xlim((0.0, self.track_length))
         ax1.set_ylim((0.0, 110))
-
+        
         # pos-acc
         ax2.plot(pos, acc, lw=2, color='k')
         ax2.set_title('x-a graph')
@@ -739,17 +744,18 @@ class AdvSpdEnvRoadMulti(gym.Env):
         ax2.set_ylabel('Acceleration in m/s²')
         ax2.set_xlim((0.0, self.track_length))
         ax2.set_ylim((self.acc_min-1, self.acc_max+1))
-
+        
         # x-t with signal phase
         ax3.plot([x*self.dt for x in range(len(pos))], pos, lw=2, color='k')
-        green = self.signal.phase_length[True]
-        red = self.signal.phase_length[False]
+        green = self.signal[0].phase_length[True]
+        red = self.signal[0].phase_length[False]
         cycle = green+red
-        for i in range(3):
-            ax3.plot(np.linspace(cycle*i-(cycle-self.signal.offset), cycle*i-(cycle-self.signal.offset)+green, green*10),
-                     [self.signal.location]*(green*10), lw=2, color='g')
-            ax3.plot(np.linspace(cycle*i-(cycle-self.signal.offset)+green, cycle*i-(cycle-self.signal.offset)+cycle, red*10),
-                     [self.signal.location]*(red*10), lw=2, color='r')
+        for j in range(self.num_signal):
+            for i in range(int(self.timelimit/10/cycle)+1):
+                ax3.plot(np.linspace(cycle*i-(cycle-self.signal[j].offset), cycle*i-(cycle-self.signal[j].offset)+green, green*10),
+                        [self.signal[j].location]*(green*10), lw=2, color='g')
+                ax3.plot(np.linspace(cycle*i-(cycle-self.signal[j].offset)+green, cycle*i-(cycle-self.signal[j].offset)+cycle, red*10),
+                        [self.signal[j].location]*(red*10), lw=2, color='r')
         ax3.set_title('x-t graph')
         ax3.set_xlabel('Time in s')
         ax3.set_ylabel('Position in m')
@@ -759,7 +765,7 @@ class AdvSpdEnvRoadMulti(gym.Env):
         #     ax3.set_xlim((0.0, math.ceil(step[-1]/100)*10))
         ax3.set_xlim((0.0, math.ceil(self.timestep/10)))
         ax3.set_ylim((0, self.track_length))
-
+        
         # t-reward
         # ax4.plot(step, reward, lw=2, color='k')
         # ax4.plot([-10, 240], [0, 0], lw=1, color='k')
@@ -798,7 +804,10 @@ class AdvSpdEnvRoadMulti(gym.Env):
         start_finish_filename = "./util/assets/track/img/start_finish_30x100.png"
 
         car = Image.open(car_filename)
-        signal = Image.open(signal_filename)
+        # signal = Image.open(signal_filename)
+        signal = []
+        for i in range(self.num_signal):
+            signal.append(Image.open(signal_filename))
         start = Image.open(start_finish_filename)
         finish = Image.open(start_finish_filename)
 
@@ -814,7 +823,10 @@ class AdvSpdEnvRoadMulti(gym.Env):
 
         start_position = (zero_x - int(scale_x * (pos[-1])), canvas[1] - clearence[1])
         finish_position = (zero_x + int(scale_x * (self.track_length - pos[-1])), canvas[1] - clearence[1])
-        signal_position = (zero_x + int(scale_x * (self.signal.location - pos[-1])), canvas[1] - clearence[1] - 50)
+        # signal_position = (zero_x + int(scale_x * (self.signal.location - pos[-1])), canvas[1] - clearence[1] - 50)
+        signal_position = []
+        for i in range(self.num_signal):
+            signal_position.append((zero_x + int(scale_x * (self.signal[i].location - pos[-1])), canvas[1] - clearence[1] - 50))
         car_position = (zero_x - 80, canvas[1] - clearence[1] + 30)
 
         try:
@@ -831,13 +843,18 @@ class AdvSpdEnvRoadMulti(gym.Env):
         draw.line((0, canvas[1]-100, 1500, canvas[1]-100), (0, 0, 0), width=5)
         background.paste(start, start_position)
         background.paste(finish, finish_position)
-        signal_draw = ImageDraw.Draw(signal)
-        if self.signal.is_green(int(step[-1] * self.dt)):
-            signal_draw.ellipse((0, 0, 60, 60,), (0, 255, 0))  # green signal
-        else:
-            signal_draw.ellipse((0, 0, 60, 60,), (255, 0, 0))  # red signal
-
-        background.paste(signal, signal_position, signal)
+        # signal_draw = ImageDraw.Draw(signal)
+        signal_draw = []
+        for i in range(self.num_signal):
+            signal_draw.append(ImageDraw.Draw(signal[i]))
+        
+            if self.signal[i].is_green(int(step[-1] * self.dt)):
+                signal_draw[i].ellipse((0, 0, 60, 60,), (0, 255, 0))  # green signal
+            else:
+                signal_draw[i].ellipse((0, 0, 60, 60,), (255, 0, 0))  # red signal
+            
+            background.paste(signal[i], signal_position[i], signal[i])
+        # background.paste(signal, signal_position, signal)
         background.paste(car, car_position, car)
 
         # print("make car-moving: {}".format(time.time()-t2))
