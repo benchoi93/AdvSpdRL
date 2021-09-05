@@ -165,6 +165,7 @@ class AdvSpdEnvRoadMulti(gym.Env):
 
         min_states = np.array([0.0,  # position
                                0.0,  # velocity
+                               self.acc_min,  # acceleration
                                0.0,  # cur_max_speed
                                0.0,  # next_max_speed
                                0.0,  # distance to next section
@@ -174,6 +175,7 @@ class AdvSpdEnvRoadMulti(gym.Env):
                                ])
         max_states = np.array([self.track_length*2,  # position
                                self.speed_max*2,  # velocity
+                               self.acc_max,
                                self.speed_max*2,  # cur_max_speed
                                self.speed_max*2,  # next_max_speed
                                self.unit_length,  # distance to next section
@@ -262,6 +264,7 @@ class AdvSpdEnvRoadMulti(gym.Env):
 
         self.state = [self.vehicle.position,
                       self.vehicle.velocity,
+                      self.vehicle.acceleration,
                       self.section.get_cur_max_speed(self.vehicle.position),
                       self.section.get_next_max_speed(self.vehicle.position),
                       self.section.get_distance_to_next_section(self.vehicle.position),
@@ -280,7 +283,7 @@ class AdvSpdEnvRoadMulti(gym.Env):
         #                                 offset_rand=True)
         # else:
         self.vehicle = Vehicle(timelimit=self.timelimit)
-        self.signal = [TrafficSignal(location=300), TrafficSignal(location=600), TrafficSignal(location=900)]
+        self.signal = [TrafficSignal(location=300, offset=40), TrafficSignal(location=600, offset=80), TrafficSignal(location=900, offset=0)]
 
         self.section = SectionMaxSpeed(self.track_length, self.unit_length)
         self.section_input = SectionMaxSpeed(self.track_length, self.unit_length)
@@ -543,6 +546,7 @@ class AdvSpdEnvRoadMulti(gym.Env):
                 if cur_position > sig.location:
                     if not sig.is_green(int(self.timestep * self.dt)):
                         self.violation = True
+                        # raise ValueError('violation')
 
             reward = self._get_reward()
             reward_with_coef = np.array(reward).dot(np.array(self.reward_coef))
@@ -694,14 +698,14 @@ class AdvSpdEnvRoadMulti(gym.Env):
 
         # print(reward)
         print("time:", step[-1])
-    
+
         # info figures
         plt.rc('font', size=15)
         plt.rc('axes', titlesize=22)
         plt.rc('axes', labelsize=15)
         plt.rc('xtick', labelsize=15)
         plt.rc('ytick', labelsize=15)
-        
+
         if check_finish == True:
             fig = plt.figure(figsize=(15, 20))
             fig.clf()
@@ -716,7 +720,7 @@ class AdvSpdEnvRoadMulti(gym.Env):
             ax2 = fig.add_subplot(222)
             ax3 = fig.add_subplot(223)
             ax4 = fig.add_subplot(224)
-        
+
         # pos-vel
         section_max_speed = self.section.sms_list[int(step[-1]*10)][1]
         print(section_max_speed)
@@ -736,7 +740,7 @@ class AdvSpdEnvRoadMulti(gym.Env):
         ax1.set_ylabel('Velocity in km/h')
         ax1.set_xlim((0.0, self.track_length))
         ax1.set_ylim((0.0, 110))
-        
+
         # pos-acc
         ax2.plot(pos, acc, lw=2, color='k')
         ax2.set_title('x-a graph')
@@ -744,7 +748,7 @@ class AdvSpdEnvRoadMulti(gym.Env):
         ax2.set_ylabel('Acceleration in m/s²')
         ax2.set_xlim((0.0, self.track_length))
         ax2.set_ylim((self.acc_min-1, self.acc_max+1))
-        
+
         # x-t with signal phase
         ax3.plot([x*self.dt for x in range(len(pos))], pos, lw=2, color='k')
         green = self.signal[0].phase_length[True]
@@ -753,9 +757,9 @@ class AdvSpdEnvRoadMulti(gym.Env):
         for j in range(self.num_signal):
             for i in range(int(self.timelimit/10/cycle)+1):
                 ax3.plot(np.linspace(cycle*i-(cycle-self.signal[j].offset), cycle*i-(cycle-self.signal[j].offset)+green, green*10),
-                        [self.signal[j].location]*(green*10), lw=2, color='g')
+                         [self.signal[j].location]*(green*10), lw=2, color='g')
                 ax3.plot(np.linspace(cycle*i-(cycle-self.signal[j].offset)+green, cycle*i-(cycle-self.signal[j].offset)+cycle, red*10),
-                        [self.signal[j].location]*(red*10), lw=2, color='r')
+                         [self.signal[j].location]*(red*10), lw=2, color='r')
         ax3.set_title('x-t graph')
         ax3.set_xlabel('Time in s')
         ax3.set_ylabel('Position in m')
@@ -765,7 +769,7 @@ class AdvSpdEnvRoadMulti(gym.Env):
         #     ax3.set_xlim((0.0, math.ceil(step[-1]/100)*10))
         ax3.set_xlim((0.0, math.ceil(self.timestep/10)))
         ax3.set_ylim((0, self.track_length))
-        
+
         # t-reward
         # ax4.plot(step, reward, lw=2, color='k')
         # ax4.plot([-10, 240], [0, 0], lw=1, color='k')
@@ -847,12 +851,12 @@ class AdvSpdEnvRoadMulti(gym.Env):
         signal_draw = []
         for i in range(self.num_signal):
             signal_draw.append(ImageDraw.Draw(signal[i]))
-        
+
             if self.signal[i].is_green(int(step[-1] * self.dt)):
                 signal_draw[i].ellipse((0, 0, 60, 60,), (0, 255, 0))  # green signal
             else:
                 signal_draw[i].ellipse((0, 0, 60, 60,), (255, 0, 0))  # red signal
-            
+
             background.paste(signal[i], signal_position[i], signal[i])
         # background.paste(signal, signal_position, signal)
         background.paste(car, car_position, car)
