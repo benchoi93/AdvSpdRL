@@ -285,7 +285,9 @@ class AdvSpdEnvRoadMulti(gym.Env):
         #                                 offset_rand=True)
         # else:
         self.vehicle = Vehicle(timelimit=self.timelimit)
-        self.signal = [TrafficSignal(location=300, offset=40), TrafficSignal(location=600, offset=80), TrafficSignal(location=900, offset=0)]
+        self.signal = [TrafficSignal(location=300, red_time=30, offset_rand=True),
+                       TrafficSignal(location=600, red_time=30, offset_rand=True),
+                       TrafficSignal(location=900, red_time=30, offset_rand=True)]
 
         self.section = SectionMaxSpeed(self.track_length, self.unit_length)
         self.section_input = SectionMaxSpeed(self.track_length, self.unit_length)
