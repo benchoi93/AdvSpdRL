@@ -554,11 +554,12 @@ class AdvSpdEnvRoadMulti(gym.Env):
             reward_with_coef = np.array(reward).dot(np.array(self.reward_coef))
             reward_list[i] = reward_with_coef
             i += 1
-            self.vehicle.veh_info[self.timestep][4] = reward_with_coef
-
-            self.section.sms_list.append([self.timestep/10, self.section.section_max_speed])
-
-            self.vehicle.veh_info[self.timestep][5] = self.section.section_max_speed[math.floor(self.vehicle.position/self.unit_length)]
+            try:
+                self.vehicle.veh_info[self.timestep][4] = reward_with_coef
+                self.section.sms_list.append([self.timestep/10, self.section.section_max_speed])
+                self.vehicle.veh_info[self.timestep][5] = self.section.section_max_speed[math.floor(self.vehicle.position/self.unit_length)]
+            except:
+                print(self.timestep)
 
             if self.vehicle.position > self.track_length:
                 break
