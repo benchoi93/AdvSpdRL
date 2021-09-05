@@ -39,7 +39,8 @@ class Vehicle(object):
         assert(self.position >= 0)
 
         # self.veh_info.append([self.position, self.velocity, self.acceleration, self.timestep])
-        self.veh_info[timestep] = [self.position, self.velocity, self.acceleration, timestep, 0, 0]
+        if timestep < self.veh_info.shape[0]:
+            self.veh_info[timestep] = [self.position, self.velocity, self.acceleration, timestep, 0, 0]
 
 
 class SectionMaxSpeed(object):
@@ -54,7 +55,8 @@ class SectionMaxSpeed(object):
 
         self.num_section = int(self.track_length / self.unit_length)
         assert(self.num_section > 0)
-        self.section_max_speed = self.min_speed + np.random.random(size=self.num_section+1) * (self.max_speed - self.min_speed)
+        # self.section_max_speed = self.min_speed + np.random.random(size=self.num_section+1) * (self.max_speed - self.min_speed)
+        self.section_max_speed = np.ones(shape=(self.num_section+1,)) * self.max_speed
         # self.section_max_speed[0] = 50/3.6
         # self.section_max_speed[1] = 30/3.6
         # self.section_max_speed[2] = 50/3.6
@@ -541,12 +543,12 @@ class AdvSpdEnvRoadMulti(gym.Env):
             self.vehicle.update(acceleration, self.timestep, self.dt)
 
             cur_position = self.vehicle.position
-            sig = self._get_signal()
-            if prev_position <= sig.location:
-                if cur_position > sig.location:
-                    if not sig.is_green(int(self.timestep * self.dt)):
-                        self.violation = True
-                        # raise ValueError('violation')
+            # sig = self._get_signal()
+            # if prev_position <= sig.location:
+            #     if cur_position > sig.location:
+            #         if not sig.is_green(int(self.timestep * self.dt)):
+            #             self.violation = True
+            # raise ValueError('violation')
 
             reward = self._get_reward()
             reward_with_coef = np.array(reward).dot(np.array(self.reward_coef))
@@ -723,7 +725,7 @@ class AdvSpdEnvRoadMulti(gym.Env):
 
         # pos-vel
         section_max_speed = self.section.sms_list[int(step[-1]*10)][1]
-        print(section_max_speed)
+        # print(section_max_speed)
         unit_length = self.unit_length
         cur_idx = int(self.vehicle.position/self.unit_length)
         if check_finish == False:
