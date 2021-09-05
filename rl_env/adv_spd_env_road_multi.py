@@ -163,11 +163,12 @@ class AdvSpdEnvRoadMulti(gym.Env):
         self.max_location = max_location
 
         # self.action_space = spaces.Tuple(([spaces.Discrete(int(speed_max * 3.6 / unit_speed) + 1) for i in range(int(track_length/unit_length)+1)]))
-        self.action_space = spaces.MultiDiscrete([int(speed_max*2 * 3.6 / unit_speed)] * self.num_action_unit)
+        # self.action_space = spaces.MultiDiscrete([int(speed_max*2 * 3.6 / unit_speed)] * self.num_action_unit)
+        self.action_space = spaces.Discrete(int(speed_max*2 * 3.6/unit_speed))
 
         min_states = np.array([0.0,  # position
                                0.0,  # velocity
-                               self.acc_min,  # acceleration
+                               0.0,  # acceleration
                                0.0,  # cur_max_speed
                                0.0,  # next_max_speed
                                0.0,  # distance to next section
@@ -186,8 +187,8 @@ class AdvSpdEnvRoadMulti(gym.Env):
                                self.timelimit*2  # green time end
                                ])
 
-        self.observation_space = spaces.Box(low=min_states,
-                                            high=max_states)
+        self.observation_space = spaces.Box(low=np.zeros(9),
+                                            high=np.ones(9))
         self.reset()
 
         # self.png_list = []
@@ -264,15 +265,15 @@ class AdvSpdEnvRoadMulti(gym.Env):
     def _get_state(self):
         sig = self._get_signal()
 
-        self.state = [self.vehicle.position,
-                      self.vehicle.velocity,
-                      self.vehicle.acceleration,
-                      self.section.get_cur_max_speed(self.vehicle.position),
-                      self.section.get_next_max_speed(self.vehicle.position),
-                      self.section.get_distance_to_next_section(self.vehicle.position),
-                      sig.location,
-                      sig.get_greentime(int(self.timestep*self.dt))[0] / self.dt - self.timestep,
-                      sig.get_greentime(int(self.timestep*self.dt))[1] / self.dt - self.timestep
+        self.state = [self.vehicle.position / self.track_length,
+                      self.vehicle.velocity / (self.speed_max * 2),
+                      self.vehicle.acceleration / (self.acc_max - self.acc_min),
+                      self.section.get_cur_max_speed(self.vehicle.position) / (self.speed_max * 2),
+                      self.section.get_next_max_speed(self.vehicle.position) / (self.speed_max * 2),
+                      self.section.get_distance_to_next_section(self.vehicle.position) / self.unit_length,
+                      sig.location/self.track_length,
+                      (sig.get_greentime(int(self.timestep*self.dt))[0] / self.dt - self.timestep) / sig.cycle_length,
+                      (sig.get_greentime(int(self.timestep*self.dt))[1] / self.dt - self.timestep) / sig.cycle_length
                       ]
 
         return self.state
@@ -520,9 +521,11 @@ class AdvSpdEnvRoadMulti(gym.Env):
         applied_action = (action + 1) * self.unit_speed
 
         cur_idx = int(self.vehicle.position/self.unit_length) + 1
-        num_action_in = (min(cur_idx+self.num_action_unit, len(self.section.section_max_speed)-1)) - cur_idx
-        self.section.section_max_speed[cur_idx:(
-            min(cur_idx+self.num_action_unit, len(self.section.section_max_speed)-1))] = applied_action[:num_action_in] / 3.6
+        # num_action_in = (min(cur_idx+self.num_action_unit, len(self.section.section_max_speed)-1)) - cur_idx
+        # self.section.section_max_speed[cur_idx:(
+        #     min(cur_idx+self.num_action_unit, len(self.section.section_max_speed)-1))] = applied_action[:num_action_in] / 3.6
+        self.section.section_max_speed[cur_idx] = applied_action / 3.6
+
         # print(cur_idx)
         # print(applied_action)
         # print(self.section.section_max_speed)
@@ -561,7 +564,8 @@ class AdvSpdEnvRoadMulti(gym.Env):
                 self.section.sms_list.append([self.timestep/10, self.section.section_max_speed])
                 self.vehicle.veh_info[self.timestep][5] = self.section.section_max_speed[math.floor(self.vehicle.position/self.unit_length)]
             except:
-                print(self.timestep)
+                # print(self.timestep)
+                break
 
             if self.vehicle.position > self.track_length:
                 break

@@ -29,7 +29,7 @@ parser.add_argument('--coef-tt', default=0, type=float, help="add penalty to tra
 parser.add_argument('--coef-signal', default=100, type=float, help="add penalty to traveltime")
 parser.add_argument('--coef-distance', default=0, type=float, help="add penalty to remaining travel distance")
 parser.add_argument('--coef-actiongap', default=0, type=float, help="add penalty to gap between calculated action and applied action")
-parser.add_argument('--max-episode-steps', default=7500, type=int, help="maximum number of steps in one episode")
+parser.add_argument('--max-episode-steps', default=2500, type=int, help="maximum number of steps in one episode")
 parser.add_argument('--activation', default='relu', type=str, choices=['relu', 'tanh'], help="activation function of policy networks")
 parser.add_argument('--unit-length', default=25, type=int, help="")
 parser.add_argument('--unit-speed', default=5, type=int, help="")
@@ -71,7 +71,7 @@ env = AdvSpdEnvRoadMulti(num_signal=3,
 env = gym.wrappers.TimeLimit(env, max_episode_steps=args.max_episode_steps)
 
 model = args.model
-checkpoint_callback = CheckpointCallback(save_freq=100000, save_path=f"./params/{model}{int(cuda)}", name_prefix=f"AdvSpdRL_{model}")
+checkpoint_callback = CheckpointCallback(save_freq=10000, save_path=f"./params/{model}{int(cuda)}", name_prefix=f"AdvSpdRL_{model}")
 # gif_callback = GIFCallback(env=env, save_freq=100000, save_path=os.path.join('simulate_gif', f'{model}{int(cuda)}'), name_prefix=f"AdvSpdRL_{model}")
 
 
@@ -81,14 +81,16 @@ if not os.path.exists(directory):
 
 pickle.dump(env, open(f"params/{model}{int(cuda)}/env.pkl", 'wb'))
 
-model = globals()[model]("MlpPolicy",
-                         env,
-                         verbose=1,
-                         tensorboard_log=f"log/{model}/",
-                         device='cuda',
-                         policy_kwargs={"activation_fn": activation_fn},
-                         ent_coef=args.entropy
-                         )
+model = PPO("MlpPolicy",
+            env,
+            verbose=1,
+            tensorboard_log=f"log/{model}/",
+            device='cuda',
+            policy_kwargs={"activation_fn": activation_fn},
+            ent_coef=args.entropy,
+            n_steps=10240,
+            batch_size=256
+            )
 # model.save("params/AdvSpdRL")
 model.learn(total_timesteps=1000000000, callback=[checkpoint_callback])
 model.save("params/AdvSpdRL_PPO")
