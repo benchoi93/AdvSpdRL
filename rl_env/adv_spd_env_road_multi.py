@@ -240,7 +240,7 @@ class AdvSpdEnvRoadMulti(gym.Env):
 
         ob = self._get_state()
 
-        reward = reward_list.sum()
+        reward = sum(reward_list)
 
         self.reward_at_time[int(self.timestep/self.action_dt/10)-1] = [self.timestep/10, reward]
 
@@ -526,15 +526,16 @@ class AdvSpdEnvRoadMulti(gym.Env):
         #     min(cur_idx+self.num_action_unit, len(self.section.section_max_speed)-1))] = applied_action[:num_action_in] / 3.6
         self.section.section_max_speed[cur_idx] = applied_action / 3.6
 
+        cur_idx_old = int(cur_idx)
         # print(cur_idx)
         # print(applied_action)
         # print(self.section.section_max_speed)
-        reward_list = np.zeros(self.num_action_updates)
-        i = 0
-        for _ in range(self.num_action_updates):
+        # reward_list = np.zeros(self.num_action_updates)
+        reward_list = []
+
+        while cur_idx == cur_idx_old:
             self.timestep += 1
-            # print(f"{self.vehicle.position=} || {self.vehicle.velocity=}")
-            # acceleration = self.get_veh_acceleration(self.vehicle.position, self.vehicle.velocity)
+
             acceleration = self.get_veh_acc_idm(self.vehicle.position, self.vehicle.velocity)
 
             assert(acceleration >= self.acc_min)
@@ -543,22 +544,14 @@ class AdvSpdEnvRoadMulti(gym.Env):
             if self.vehicle.velocity + acceleration * self.dt < 0:
                 acceleration = - self.vehicle.velocity / self.dt
 
-            prev_position = self.vehicle.position
-            # print("acceleration =", np.round(acceleration, 4))
             self.vehicle.update(acceleration, self.timestep, self.dt)
-
             cur_position = self.vehicle.position
-            # sig = self._get_signal()
-            # if prev_position <= sig.location:
-            #     if cur_position > sig.location:
-            #         if not sig.is_green(int(self.timestep * self.dt)):
-            #             self.violation = True
-            # raise ValueError('violation')
 
             reward = self._get_reward()
             reward_with_coef = np.array(reward).dot(np.array(self.reward_coef))
-            reward_list[i] = reward_with_coef
-            i += 1
+            reward_list.append(reward_with_coef)
+
+            cur_idx = int(self.vehicle.position/self.unit_length) + 1
             try:
                 self.vehicle.veh_info[self.timestep][4] = reward_with_coef
                 self.section.sms_list.append([self.timestep/10, self.section.section_max_speed])
@@ -573,6 +566,48 @@ class AdvSpdEnvRoadMulti(gym.Env):
             if self.timestep > self.timelimit:
                 break
 
+        # i = 0
+        # for _ in range(self.num_action_updates):
+        #     self.timestep += 1
+        #     # print(f"{self.vehicle.position=} || {self.vehicle.velocity=}")
+        #     # acceleration = self.get_veh_acceleration(self.vehicle.position, self.vehicle.velocity)
+        #     acceleration = self.get_veh_acc_idm(self.vehicle.position, self.vehicle.velocity)
+
+        #     assert(acceleration >= self.acc_min)
+        #     assert(acceleration <= self.acc_max)
+
+        #     if self.vehicle.velocity + acceleration * self.dt < 0:
+        #         acceleration = - self.vehicle.velocity / self.dt
+
+        #     prev_position = self.vehicle.position
+        #     # print("acceleration =", np.round(acceleration, 4))
+        #     self.vehicle.update(acceleration, self.timestep, self.dt)
+        #     cur_position = self.vehicle.position
+        #     # sig = self._get_signal()
+        #     # if prev_position <= sig.location:
+        #     #     if cur_position > sig.location:
+        #     #         if not sig.is_green(int(self.timestep * self.dt)):
+        #     #             self.violation = True
+        #     # raise ValueError('violation')
+
+        #     reward = self._get_reward()
+        #     reward_with_coef = np.array(reward).dot(np.array(self.reward_coef))
+        #     reward_list[i] = reward_with_coef
+        #     i += 1
+        #     try:
+        #         self.vehicle.veh_info[self.timestep][4] = reward_with_coef
+        #         self.section.sms_list.append([self.timestep/10, self.section.section_max_speed])
+        #         self.vehicle.veh_info[self.timestep][5] = self.section.section_max_speed[math.floor(self.vehicle.position/self.unit_length)]
+        #     except:
+        #         # print(self.timestep)
+        #         break
+
+        #     if self.vehicle.position > self.track_length:
+        #         break
+
+        #     if self.timestep > self.timelimit:
+        #         break
+
         assert(self.vehicle.velocity >= 0)
         assert(self.vehicle.position >= 0)
 
@@ -580,8 +615,14 @@ class AdvSpdEnvRoadMulti(gym.Env):
 
     def _get_reward(self):
         max_speed = self.section.get_cur_max_speed(self.vehicle.position)
-        reward_norm_velocity = np.abs((self.vehicle.velocity) - max_speed)
-        reward_norm_velocity /= self.speed_max
+        reward_norm_velocity1 = np.abs((self.vehicle.velocity) - max_speed)
+        reward_norm_velocity1 /= self.speed_max
+
+        max_speed = self.section_input.get_cur_max_speed(self.vehicle.position)
+        reward_norm_velocity2 = np.abs((self.vehicle.velocity) - max_speed)
+        reward_norm_velocity2 /= self.speed_max
+
+        reward_norm_velocity = (reward_norm_velocity1 + reward_norm_velocity2)/2
 
         reward_jerk = np.abs(self.vehicle.jerk)
         jerk_max = (self.acc_max - self.acc_min) / self.dt
