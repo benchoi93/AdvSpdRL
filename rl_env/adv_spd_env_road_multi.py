@@ -272,8 +272,8 @@ class AdvSpdEnvRoadMulti(gym.Env):
                       self.section.get_next_max_speed(self.vehicle.position) / (self.speed_max * 2),
                       self.section.get_distance_to_next_section(self.vehicle.position) / self.unit_length,
                       sig.location/self.track_length,
-                      (sig.get_greentime(int(self.timestep*self.dt))[0] / self.dt - self.timestep) / sig.cycle_length,
-                      (sig.get_greentime(int(self.timestep*self.dt))[1] / self.dt - self.timestep) / sig.cycle_length
+                      (sig.get_greentime(int(self.timestep*self.dt))[0] / self.dt - self.timestep) / (sig.cycle_length/self.dt),
+                      (sig.get_greentime(int(self.timestep*self.dt))[1] / self.dt - self.timestep) / (sig.cycle_length/self.dt)h
                       ]
 
         return self.state
