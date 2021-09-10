@@ -114,16 +114,16 @@ class TrafficSignal(object):
         pass
 
     def get_greentime(self, timestep):
-        greentime_start = 0
-        greentime_end = 0
+        greentime_start = None
+        greentime_end = None
 
-        while greentime_end == 0:
-            if greentime_start == 0:
+        while greentime_end is None:
+            if greentime_start is None:
                 if self.timetable[timestep % self.cycle_length] == 1:
-                    greentime_start = timestep
+                    greentime_start = int(timestep)
             else:
                 if self.timetable[timestep % self.cycle_length] == 0:
-                    greentime_end = timestep
+                    greentime_end = int(timestep)
             timestep += 1
 
         return greentime_start, greentime_end
@@ -272,8 +272,8 @@ class AdvSpdEnvRoadMulti(gym.Env):
                       self.section.get_next_max_speed(self.vehicle.position) / (self.speed_max * 2),
                       self.section.get_distance_to_next_section(self.vehicle.position) / self.unit_length,
                       sig.location/self.track_length,
-                      (sig.get_greentime(int(self.timestep*self.dt))[0] / self.dt - self.timestep) / (sig.cycle_length/self.dt),
-                      (sig.get_greentime(int(self.timestep*self.dt))[1] / self.dt - self.timestep) / (sig.cycle_length/self.dt)
+                      (sig.get_greentime(int(self.timestep*self.dt))[0] - int(self.timestep*self.dt)) / (sig.cycle_length),
+                      (sig.get_greentime(int(self.timestep*self.dt))[1] - int(self.timestep*self.dt)) / (sig.cycle_length)
                       ]
 
         return self.state
