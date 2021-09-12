@@ -629,8 +629,8 @@ class AdvSpdEnvRoadMulti(gym.Env):
         reward_jerk /= jerk_max
 
         reward_shock = 0
-        if self.vehicle.velocity > self.section.get_cur_max_speed(self.vehicle.position):
-            reward_shock += 1
+        # if self.vehicle.velocity > self.section.get_cur_max_speed(self.vehicle.position):
+        #     reward_shock += 1
         if self.vehicle.velocity > self.speed_max:
             reward_shock += 1
 
