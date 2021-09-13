@@ -1,3 +1,5 @@
+from pathlib import Path
+from util.plotutil import info_graph
 from stable_baselines3.common.callbacks import CheckpointCallback
 from stable_baselines3 import PPO, SAC, DDPG, A2C, DQN, TD3
 import numpy as np
@@ -16,10 +18,14 @@ os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 start = time.time()
 
 modelname = 'PPO'
-cuda = '0'
+cuda = '3'
+i = 0
+
 # coef_power = 0.01
 # param = 'AdvSpdRL_DDPG_3500000_steps'
-
+# for cuda in range(4):
+#     cuda = str(cuda)
+#     for i in range(100):
 # try:
 env: AdvSpdEnvRoadMulti = pickle.load(open(os.path.join('params', f'{modelname}{cuda}', 'env.pkl'), 'rb'))
 # env = AdvSpdEnvRoadMulti(num_signal=3, num_action_unit=3)
@@ -29,12 +35,19 @@ list_of_files = glob.glob(os.path.join('params', f'{modelname}{cuda}/*'))
 latest_file = max(list_of_files, key=os.path.getmtime)
 model = model.load(latest_file, device='cpu')
 # env = env
+path = Path(f'simulate_gif/{modelname}{cuda}/')
+if not path.exists():
+    path.mkdir()
 
 ob = env.reset()
+pickle.dump(env, open(f'simulate_gif/{modelname}{cuda}/env_{i}.pkl', 'wb'))
+
 episode_over = False
 combine = True
 
 cnt = 0
+print("-------------------------------------")
+
 while not episode_over:
     t = time.time()
     # action = np.array(env.get_random_action())
@@ -64,9 +77,30 @@ print("-------------------------------------")
 #     env.car_moving(env.vehicle.veh_info[:i+2], startorfinish=False, combine=True)
 
 # env.car_moving(env.vehicle.veh_info[:env.timestep+1], startorfinish=True, combine=combine)
-env.info_graph(env.vehicle.veh_info[:env.timestep+1], check_finish=True)
+
+info_graph(env, env.vehicle.veh_info[:env.timestep+1], check_finish=True, path=f'simulate_gif/{modelname}{cuda}/infograph_{i}.png')
 
 finish = time.time()
+
+env = pickle.load(open(f'simulate_gif/{modelname}{cuda}/env_{i}.pkl', 'rb'))
+
+episode_over = False
+combine = True
+
+cnt = 0
+print("-------------------------------------")
+
+while not episode_over:
+    action = np.array([9])
+    print(f"{cnt=} || {action=}")
+    cnt += 1
+    ob, reward, episode_over, info = env.step(action)
+
+
+print(env.timestep/10)
+print("-------------------------------------")
+
+info_graph(env, env.vehicle.veh_info[:env.timestep+1], check_finish=True, path=f'simulate_gif/{modelname}{cuda}/infograph_base_{i}.png')
 
 # env.make_gif(path=f'simulate_gif/{modelname}{cuda}/simulate.gif')
 
