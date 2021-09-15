@@ -21,16 +21,7 @@ def info_graph(env_list, veh_info_list, check_finish=False, path='./simulate_gif
     reward = [env_list[i].reward_at_time[env_list[i].reward_at_time[:, 0] <= step[i][-1]] for i in range(len(env_list))]
     maxspeed = [veh[:, 5]*3.6 for veh in veh_info_list]
 
-    # pos = veh_info_list[:, :, 0]
-    # vel = veh_info_list[:, :, 1]*3.6
-    # acc = veh_info_list[:, :, 2]
-    # step = veh_info_list[:, :, 3]/10
-    # # reward = veh_info_list[:, 4]
-    # reward = env.reward_at_time[env.reward_at_time[:, 0] <= step[-1]]
-    # maxspeed = veh_info_list[:, :, 5]*3.6
-
-    # print(reward)
-    # print("time:", step[-1])
+    timestep = np.max([env.timestep for env in env_list])
 
     # info figures
     plt.rc('font', size=15)
@@ -98,7 +89,7 @@ def info_graph(env_list, veh_info_list, check_finish=False, path='./simulate_gif
         ax3.set_title('x-t graph')
         ax3.set_xlabel('Time in s')
         ax3.set_ylabel('Position in m')
-        ax3.set_xlim((0.0, math.ceil(env.timestep/10)))
+        ax3.set_xlim((0.0, math.ceil(timestep/10)))
         ax3.set_ylim((0, env.track_length))
 
     # t-reward
@@ -107,7 +98,7 @@ def info_graph(env_list, veh_info_list, check_finish=False, path='./simulate_gif
         ax4.set_title('reward-t graph')
         ax4.set_xlabel('Time in s')
         ax4.set_ylabel('Reward')
-        ax4.set_xlim((0.0, math.ceil(env.timestep/10)))
+        ax4.set_xlim((0.0, math.ceil(timestep/10)))
         reward_min = np.min([np.round(np.min(env.reward_at_time[:, 1]), 0) for env in env_list])-2
         ax4.set_ylim((reward_min, 3.0))
 
