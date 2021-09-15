@@ -1,6 +1,7 @@
 
 import gym
 import os
+from stable_baselines3.common.monitor import Monitor
 from torch import nn
 from torch._C import device
 # from rl_env.adv_spd_env import AdvSpdEnv
@@ -14,7 +15,7 @@ from stable_baselines3.common.callbacks import CheckpointCallback
 import pickle
 import argparse
 
-from util.custom_callback_road import GIFCallback
+from util.custom_callback_road import SaveOnBestTrainingRewardCallback
 # from rl_env.policy import MlpExtractor_AdvSpdRL
 
 
@@ -70,21 +71,23 @@ env = AdvSpdEnvRoadMulti(num_signal=3,
 
 env = gym.wrappers.TimeLimit(env, max_episode_steps=args.max_episode_steps)
 
-model = args.model
-checkpoint_callback = CheckpointCallback(save_freq=10000, save_path=f"./params/{model}{int(cuda)}", name_prefix=f"AdvSpdRL_{model}")
+modelname = args.model
+env = Monitor(env, f"./params/{modelname}{int(cuda)}")
+checkpoint_callback = CheckpointCallback(save_freq=10000, save_path=f"./params/{modelname}{int(cuda)}", name_prefix=f"AdvSpdRL_{modelname}")
+best_callback = SaveOnBestTrainingRewardCallback(check_freq=10000, log_dir=f"./params/{modelname}{int(cuda)}")
 # gif_callback = GIFCallback(env=env, save_freq=100000, save_path=os.path.join('simulate_gif', f'{model}{int(cuda)}'), name_prefix=f"AdvSpdRL_{model}")
 
 
-directory = f'params/{model}{int(cuda)}'
+directory = f'params/{modelname}{int(cuda)}'
 if not os.path.exists(directory):
     os.mkdir(directory)
 
-pickle.dump(env, open(f"params/{model}{int(cuda)}/env.pkl", 'wb'))
+pickle.dump(env.env, open(f"params/{modelname}{int(cuda)}/env.pkl", 'wb'))
 
 model = PPO("MlpPolicy",
             env,
             verbose=1,
-            tensorboard_log=f"log/{model}/",
+            tensorboard_log=f"log/{modelname}/",
             device='cuda',
             policy_kwargs={"activation_fn": activation_fn},
             ent_coef=args.entropy,
@@ -92,7 +95,7 @@ model = PPO("MlpPolicy",
             batch_size=256
             )
 # model.save("params/AdvSpdRL")
-model.learn(total_timesteps=1000000000, callback=[checkpoint_callback])
+model.learn(total_timesteps=1000000000, callback=[checkpoint_callback, best_callback])
 model.save("params/AdvSpdRL_PPO")
 # checkpoint_callback = CheckpointCallback(save_freq=10000, save_path="./params/SAC", name_prefix="AdvSpdRL_SAC")
 
