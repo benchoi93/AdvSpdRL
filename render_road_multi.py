@@ -109,13 +109,6 @@ env2 = env
 # env_list = [env1]
 env_list = [env1, env2]
 
-# veh_info_list = []
-# for env in env_list:
-#     veh_info_list.append(env.vehicle.veh_info)
-
-# timestep = np.max([env.timestep for env in env_list])
-# print(timestep)
-
 info_graph(env_list, [env.vehicle.veh_info[:env.timestep+1] for env in env_list], check_finish=True, path=f'simulate_gif/{modelname}{cuda}/infograph_base_{i}.png')
 info_graph_separate(env_list, [env.vehicle.veh_info[:env.timestep+1] for env in env_list], check_finish=True, path=f'simulate_gif/{modelname}{cuda}/infograph_separate_{i}.png')
 
