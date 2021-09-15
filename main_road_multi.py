@@ -72,7 +72,7 @@ env = AdvSpdEnvRoadMulti(num_signal=3,
 env = gym.wrappers.TimeLimit(env, max_episode_steps=args.max_episode_steps)
 
 modelname = args.model
-env = Monitor(env, f"./params/{modelname}{int(cuda)}")
+env = Monitor(env, f"./params/{modelname}{int(cuda)}/")
 checkpoint_callback = CheckpointCallback(save_freq=10000, save_path=f"./params/{modelname}{int(cuda)}", name_prefix=f"AdvSpdRL_{modelname}")
 best_callback = SaveOnBestTrainingRewardCallback(check_freq=10000, log_dir=f"./params/{modelname}{int(cuda)}")
 # gif_callback = GIFCallback(env=env, save_freq=100000, save_path=os.path.join('simulate_gif', f'{model}{int(cuda)}'), name_prefix=f"AdvSpdRL_{model}")
