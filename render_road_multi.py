@@ -18,7 +18,7 @@ os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 start = time.time()
 
 modelname = 'PPO'
-cuda = '3'
+cuda = '0'
 i = 0
 
 # coef_power = 0.01
@@ -78,7 +78,9 @@ print("-------------------------------------")
 
 # env.car_moving(env.vehicle.veh_info[:env.timestep+1], startorfinish=True, combine=combine)
 
-info_graph(env, env.vehicle.veh_info[:env.timestep+1], check_finish=True, path=f'simulate_gif/{modelname}{cuda}/infograph_{i}.png')
+# info_graph(env, env.vehicle.veh_info[:env.timestep+1], check_finish=True, path=f'simulate_gif/{modelname}{cuda}/infograph_{i}.png')
+
+env1 = env
 
 finish = time.time()
 
@@ -100,13 +102,30 @@ while not episode_over:
 print(env.timestep/10)
 print("-------------------------------------")
 
-info_graph(env, env.vehicle.veh_info[:env.timestep+1], check_finish=True, path=f'simulate_gif/{modelname}{cuda}/infograph_base_{i}.png')
+# info_graph(env, env.vehicle.veh_info[:env.timestep+1], check_finish=True, path=f'simulate_gif/{modelname}{cuda}/infograph_base_{i}.png')
+
+env2 = env
+
+env_list = [env1, env2]
+
+# veh_info_list = []
+# for env in env_list:
+#     veh_info_list.append(env.vehicle.veh_info)
+
+# timestep = np.max([env.timestep for env in env_list])
+# print(timestep)
+
+info_graph(env_list, [env.vehicle.veh_info[:env.timestep+1] for env in env_list], check_finish=True, path=f'simulate_gif/{modelname}{cuda}/infograph_base_{i}.png')
 
 # env.make_gif(path=f'simulate_gif/{modelname}{cuda}/simulate.gif')
 
-print('-------------------------------------')
-print("reward coef: ", env.reward_coef)
-print("reward: {}".format((env.vehicle.veh_info[:, 4]).sum()))
-print("execution time: {}".format(np.round(finish-start), 5))
-print("# of episodes: {}".format(env.timestep))
-print("execution time per episode: {}".format((finish-start)/env.timestep))
+env_num = 0
+for env in env_list:
+    print('-------------------------------------')
+    print("env{}".format(env_num))
+    env_num += 1
+    print("reward coef: ", env.reward_coef)
+    print("reward: {}".format((env.vehicle.veh_info[:, 4]).sum()))
+    print("execution time: {}".format(np.round(finish-start), 5))
+    print("# of episodes: {}".format(env.timestep))
+    print("execution time per episode: {}".format((finish-start)/env.timestep))
