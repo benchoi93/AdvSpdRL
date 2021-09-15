@@ -1,5 +1,5 @@
 from pathlib import Path
-from util.plotutil import info_graph
+from util.plotutil import info_graph, info_graph_separate
 from stable_baselines3.common.callbacks import CheckpointCallback
 from stable_baselines3 import PPO, SAC, DDPG, A2C, DQN, TD3
 import numpy as np
@@ -106,6 +106,7 @@ print("-------------------------------------")
 
 env2 = env
 
+# env_list = [env1]
 env_list = [env1, env2]
 
 # veh_info_list = []
@@ -116,16 +117,17 @@ env_list = [env1, env2]
 # print(timestep)
 
 info_graph(env_list, [env.vehicle.veh_info[:env.timestep+1] for env in env_list], check_finish=True, path=f'simulate_gif/{modelname}{cuda}/infograph_base_{i}.png')
+info_graph_separate(env_list, [env.vehicle.veh_info[:env.timestep+1] for env in env_list], check_finish=True, path=f'simulate_gif/{modelname}{cuda}/infograph_separate_{i}.png')
 
 # env.make_gif(path=f'simulate_gif/{modelname}{cuda}/simulate.gif')
 
 env_num = 0
 for env in env_list:
-    print('-------------------------------------')
-    print("env{}".format(env_num))
+    print("@ env{}".format(env_num))
     env_num += 1
     print("reward coef: ", env.reward_coef)
     print("reward: {}".format((env.vehicle.veh_info[:, 4]).sum()))
     print("execution time: {}".format(np.round(finish-start), 5))
     print("# of episodes: {}".format(env.timestep))
-    print("execution time per episode: {}".format((finish-start)/env.timestep))
+    # print("execution time per episode: {}".format((finish-start)/env.timestep))
+    print('-------------------------------------')

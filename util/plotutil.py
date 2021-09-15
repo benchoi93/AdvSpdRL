@@ -21,10 +21,6 @@ def info_graph(env_list, veh_info_list, check_finish=False, path='./simulate_gif
     reward = [env_list[i].reward_at_time[env_list[i].reward_at_time[:, 0] <= step[i][-1]] for i in range(len(env_list))]
     maxspeed = [veh[:, 5]*3.6 for veh in veh_info_list]
 
-    print(np.shape(pos[0]))
-    print(np.shape(pos[1]))
-    # print(pos[1][-2])
-
     # pos = veh_info_list[:, :, 0]
     # vel = veh_info_list[:, :, 1]*3.6
     # acc = veh_info_list[:, :, 2]
@@ -60,11 +56,11 @@ def info_graph(env_list, veh_info_list, check_finish=False, path='./simulate_gif
 
     color_list = ['k', 'darkorange', 'indigo', 'b']
 
-    # pos-vel
     for i in range(len(env_list)):
         env = env_list[i]
+
+        # pos-vel
         section_max_speed = env.section.sms_list[int(step[i][-1]*10)][1]
-        # print(section_max_speed)
         unit_length = env.unit_length
         cur_idx = int(env.vehicle.position/env.unit_length)
         if check_finish == False:
@@ -72,19 +68,15 @@ def info_graph(env_list, veh_info_list, check_finish=False, path='./simulate_gif
             for j in range(cur_idx, min(cur_idx+env.num_action_unit+1, len(env.section.section_max_speed)-1)):
                 ax1.plot(np.linspace(j*unit_length, (j+1)*unit_length, unit_length*10),
                         [section_max_speed[j]*3.6]*(unit_length*10), lw=2, color='r')
-
         ax1.plot(pos[i], vel[i], lw=2, color=color_list[i])
         ax1.plot(pos[i], maxspeed[i], lw=1.5, color=color_list[i], alpha=0.5)
-
         ax1.set_title('x-v graph')
         ax1.set_xlabel('Position in m')
         ax1.set_ylabel('Velocity in km/h')
         ax1.set_xlim((0.0, env.track_length))
         ax1.set_ylim((0.0, 110))
 
-    # pos-acc
-    for i in range(len(env_list)):
-        env = env_list[i]
+        # pos-acc
         ax2.plot(pos[i], acc[i], lw=2, color=color_list[i])
         ax2.set_title('x-a graph')
         ax2.set_xlabel('Position in m')
@@ -92,9 +84,7 @@ def info_graph(env_list, veh_info_list, check_finish=False, path='./simulate_gif
         ax2.set_xlim((0.0, env.track_length))
         ax2.set_ylim((env.acc_min-1, env.acc_max+1))
 
-    # x-t with signal phase
-    for i in range(len(env_list)):
-        env = env_list[i]
+        # x-t with signal phase
         ax3.plot([x*env.dt for x in range(len(pos[i]))], pos[i], lw=2, color=color_list[i])
         green = env.signal[0].phase_length[True]
         red = env.signal[0].phase_length[False]
@@ -108,28 +98,15 @@ def info_graph(env_list, veh_info_list, check_finish=False, path='./simulate_gif
         ax3.set_title('x-t graph')
         ax3.set_xlabel('Time in s')
         ax3.set_ylabel('Position in m')
-        # if step[-1] == 0:
-        #     ax3.set_xlim((0.0, 10))
-        # else:
-        #     ax3.set_xlim((0.0, math.ceil(step[-1]/100)*10))
         ax3.set_xlim((0.0, math.ceil(env.timestep/10)))
         ax3.set_ylim((0, env.track_length))
 
     # t-reward
-    # ax4.plot(step, reward, lw=2, color='k')
-    # ax4.plot([-10, 240], [0, 0], lw=1, color='k')
-    for i in range(len(env_list)):
-        env = env_list[i]
         ax4.scatter(reward[i][:, 0], reward[i][:, 1], color=color_list[i], s=15)
         ax4.plot(reward[i][:, 0], reward[i][:, 1], lw=2, color=color_list[i], alpha=0.5)
-        # xlim_max = int(max(100, len(pos)) * env.dt) + 1
         ax4.set_title('reward-t graph')
         ax4.set_xlabel('Time in s')
         ax4.set_ylabel('Reward')
-        # if step[-1] == 0:
-        #     ax4.set_xlim((0.0, 10))
-        # else:
-        #     ax4.set_xlim((0.0, math.ceil(step[-1]/100)*10))
         ax4.set_xlim((0.0, math.ceil(env.timestep/10)))
         reward_min = np.min([np.round(np.min(env.reward_at_time[:, 1]), 0) for env in env_list])-2
         ax4.set_ylim((reward_min, 3.0))
@@ -143,6 +120,111 @@ def info_graph(env_list, veh_info_list, check_finish=False, path='./simulate_gif
 
     return fig
 
+def info_graph_separate(env_list, veh_info_list, check_finish=False, path='./simulate_gif/info_graph.png'):
+    # t1 = time.time()
+    pos = [veh[:, 0] for veh in veh_info_list]
+    vel = [veh[:, 1]*3.6 for veh in veh_info_list]
+    acc = [veh[:, 2] for veh in veh_info_list]
+    step = [veh[:, 3]/10 for veh in veh_info_list]
+    reward = [env_list[i].reward_at_time[env_list[i].reward_at_time[:, 0] <= step[i][-1]] for i in range(len(env_list))]
+    maxspeed = [veh[:, 5]*3.6 for veh in veh_info_list]
+
+    # info figures
+    plt.rc('font', size=15)
+    plt.rc('axes', titlesize=22)
+    plt.rc('axes', labelsize=15)
+    plt.rc('xtick', labelsize=15)
+    plt.rc('ytick', labelsize=15)
+
+    # if check_finish == True:
+    fig = plt.figure(figsize=(15*len(env_list), 20))
+    fig.clf()
+    fig_list = []
+    for i in range(len(env_list)):
+        ax1 = fig.add_subplot(4, len(env_list), (i+1))
+        ax2 = fig.add_subplot(4, len(env_list), (i+1)+len(env_list)*1)
+        ax3 = fig.add_subplot(4, len(env_list), (i+1)+len(env_list)*2)
+        ax4 = fig.add_subplot(4, len(env_list), (i+1)+len(env_list)*3)
+        fig_list.append([ax1, ax2, ax3, ax4])
+
+    # else:
+    #     fig = plt.figure(figsize=(15, 10))
+    #     fig.clf()
+    #     ax1 = fig.add_subplot(221)
+    #     ax2 = fig.add_subplot(222)
+    #     ax3 = fig.add_subplot(223)
+    #     ax4 = fig.add_subplot(224)
+
+    color_list = ['k', 'darkorange', 'indigo', 'b']
+
+    for i in range(len(env_list)):
+        env = env_list[i]
+
+        ax1 = fig_list[i][0]
+        ax2 = fig_list[i][1]
+        ax3 = fig_list[i][2]
+        ax4 = fig_list[i][3]
+
+        # pos-vel
+        section_max_speed = env.section.sms_list[int(step[i][-1]*10)][1]
+        unit_length = env.unit_length
+        cur_idx = int(env.vehicle.position/env.unit_length)
+        if check_finish == False:
+            # for i in range(len(section_max_speed)):
+            for j in range(cur_idx, min(cur_idx+env.num_action_unit+1, len(env.section.section_max_speed)-1)):
+                ax1.plot(np.linspace(j*unit_length, (j+1)*unit_length, unit_length*10),
+                        [section_max_speed[j]*3.6]*(unit_length*10), lw=2, color='r')
+        ax1.plot(pos[i], vel[i], lw=2, color=color_list[i])
+        ax1.plot(pos[i], maxspeed[i], lw=1.5, color=color_list[i], alpha=0.5)
+        ax1.set_title('x-v graph')
+        ax1.set_xlabel('Position in m')
+        ax1.set_ylabel('Velocity in km/h')
+        ax1.set_xlim((0.0, env.track_length))
+        ax1.set_ylim((0.0, 110))
+
+        # pos-acc   
+        ax2.plot(pos[i], acc[i], lw=2, color=color_list[i])
+        ax2.set_title('x-a graph')
+        ax2.set_xlabel('Position in m')
+        ax2.set_ylabel('Acceleration in m/s²')
+        ax2.set_xlim((0.0, env.track_length))
+        ax2.set_ylim((env.acc_min-1, env.acc_max+1))
+
+        # x-t with signal phase
+        ax3.plot([x*env.dt for x in range(len(pos[i]))], pos[i], lw=2, color=color_list[i])
+        green = env.signal[0].phase_length[True]
+        red = env.signal[0].phase_length[False]
+        cycle = green+red
+        for j in range(env.num_signal):
+            for k in range(int(env.timelimit/10/cycle)+1):
+                ax3.plot(np.linspace(cycle*k-(cycle-env.signal[j].offset), cycle*k-(cycle-env.signal[j].offset)+green, green*10),
+                        [env.signal[j].location]*(green*10), lw=2, color='g')
+                ax3.plot(np.linspace(cycle*k-(cycle-env.signal[j].offset)+green, cycle*k-(cycle-env.signal[j].offset)+cycle, red*10),
+                        [env.signal[j].location]*(red*10), lw=2, color='r')
+        ax3.set_title('x-t graph')
+        ax3.set_xlabel('Time in s')
+        ax3.set_ylabel('Position in m')
+        ax3.set_xlim((0.0, math.ceil(env.timestep/10)))
+        ax3.set_ylim((0, env.track_length))
+
+        # t-reward
+        ax4.scatter(reward[i][:, 0], reward[i][:, 1], color=color_list[i], s=15)
+        ax4.plot(reward[i][:, 0], reward[i][:, 1], lw=2, color=color_list[i], alpha=0.5)
+        ax4.set_title('reward-t graph')
+        ax4.set_xlabel('Time in s')
+        ax4.set_ylabel('Reward')
+        ax4.set_xlim((0.0, math.ceil(env.timestep/10)))
+        reward_min = np.min([np.round(np.min(env.reward_at_time[:, 1]), 0) for env in env_list])-2
+        ax4.set_ylim((reward_min, 3.0))
+
+    plt.subplots_adjust(hspace=0.35)
+
+    # print("make fig: {}".format(time.time()-t1))
+
+    if check_finish == True:
+        plt.savefig(path)
+
+    return fig
 
 def car_moving(env, veh_info, startorfinish=False, combine=False):
     # t2 = time.time()
