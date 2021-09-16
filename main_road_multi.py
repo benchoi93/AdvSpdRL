@@ -51,7 +51,7 @@ else:
     print("wrong input")
 
 
-env = AdvSpdEnvRoadMulti(num_signal=3,
+env = AdvSpdEnvRoadMulti(num_signal=5,
                          num_action_unit=3,
                          reward_coef=[args.coef_vel,
                                       args.coef_shock,

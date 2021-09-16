@@ -38,8 +38,8 @@ class Vehicle(object):
         assert(self.velocity >= 0)
         assert(self.position >= 0)
         
-        # self.veh_info.append([self.position, self.velocity, self.acceleration, self.timestep])
-        self.veh_info[timestep] = [self.position, self.velocity, self.acceleration, timestep, 0, 0]
+        if timestep < self.veh_info.shape[0]:
+            self.veh_info[timestep] = [self.position, self.velocity, self.acceleration, timestep, 0, 0]
 
 class SectionMaxSpeed(object):
     def __init__(self, track_length=500, unit_length=100, min_speed=30, max_speed=50):
@@ -158,8 +158,6 @@ class AdvSpdEnvRoad(gym.Env):
         # self.action_space = spaces.Tuple(([spaces.Discrete(int(speed_max * 3.6 / unit_speed) + 1) for i in range(int(track_length/unit_length)+1)]))
         self.action_space = spaces.MultiDiscrete([int(speed_max*2 * 3.6 / unit_speed)] * (int(track_length/unit_length)+1))
 
-        self.reset()
-
         min_states = np.array([0.0,  # position
                                0.0,  # velocity
                                0.0,  # cur_max_speed
@@ -181,10 +179,11 @@ class AdvSpdEnvRoad(gym.Env):
 
         self.observation_space = spaces.Box(low=min_states,
                                             high=max_states)
+        self.reset()
 
         # self.png_list = []
         # self.scenario = scenario
-        self.viewer = None
+        # self.viewer = None
         pass
 
     def save(self):
@@ -231,7 +230,7 @@ class AdvSpdEnvRoad(gym.Env):
 
         ob = self._get_state()
     
-        reward = reward_list.sum()
+        reward = sum(reward_list)
 
         self.reward_at_time[int(self.timestep/self.action_dt/10)-1] = [self.timestep/10, reward]
         

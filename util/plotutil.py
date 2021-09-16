@@ -13,7 +13,6 @@ from gym import spaces
 
 
 def info_graph(env_list, veh_info_list, check_finish=False, path='./simulate_gif/info_graph.png'):
-    # t1 = time.time()
     pos = [veh[:, 0] for veh in veh_info_list]
     vel = [veh[:, 1]*3.6 for veh in veh_info_list]
     acc = [veh[:, 2] for veh in veh_info_list]
@@ -104,7 +103,6 @@ def info_graph(env_list, veh_info_list, check_finish=False, path='./simulate_gif
 
     plt.subplots_adjust(hspace=0.35)
 
-    # print("make fig: {}".format(time.time()-t1))
 
     if check_finish == True:
         plt.savefig(path)
@@ -112,7 +110,6 @@ def info_graph(env_list, veh_info_list, check_finish=False, path='./simulate_gif
     return fig
 
 def info_graph_separate(env_list, veh_info_list, check_finish=False, path='./simulate_gif/info_graph.png'):
-    # t1 = time.time()
     pos = [veh[:, 0] for veh in veh_info_list]
     vel = [veh[:, 1]*3.6 for veh in veh_info_list]
     acc = [veh[:, 2] for veh in veh_info_list]
@@ -210,15 +207,12 @@ def info_graph_separate(env_list, veh_info_list, check_finish=False, path='./sim
 
     plt.subplots_adjust(hspace=0.35)
 
-    # print("make fig: {}".format(time.time()-t1))
-
     if check_finish == True:
         plt.savefig(path)
 
     return fig
 
 def car_moving(env, veh_info, startorfinish=False, combine=False):
-    # t2 = time.time()
     pos = (np.round(veh_info[:, 0], 0)).astype(int)
     step = veh_info[:, 3]
     # print("pos:", pos)
@@ -307,6 +301,8 @@ def car_moving(env, veh_info, startorfinish=False, combine=False):
 
     return [background] * dup
 
+def make_gif(self, path="./simulate_gif/simulation.gif"):
+        self.png_list[0].save(path, save_all=True, append_images=self.png_list[1:], optimize=False, duration=30, loop=1)
 
 def fig2img(fig):
     # t4 = time.time()
