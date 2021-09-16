@@ -13,15 +13,33 @@ from PIL import Image, ImageDraw, ImageFont
 
 
 class Vehicle(object):
-    def __init__(self):
-        max_speed = 50 / 3.6
+    def __init__(self, initial_speed=40/3.6, timelimit=7500, num_states=6):
+        # init_max_speed = 50 / 3.6
         self.position = 0
-        # self.velocity = np.random.rand() * max_speed
-        self.velocity = 40/3.6
+        # self.velocity = np.random.rand() * init_max_speed
+        self.velocity = initial_speed
         self.acceleration = 0
         self.jerk = 0
         self.action_limit_penalty = 1
         self.actiongap = 0
+
+        # 1: pos / 2: vel / 3: acc / 4: timestep / 5: reward / 6: max speed at the time in the section
+        self.veh_info = np.zeros((timelimit, num_states))
+
+    def update(self, acc, timestep, dt):
+        self.jerk = abs(acc - self.acceleration) / dt
+        self.acceleration = acc
+
+        # assert(np.round(self.velocity + acc * dt, -5) >= 0)
+        self.velocity = self.velocity + acc * dt
+        self.position = self.position + self.velocity * dt
+        # print(f'Position = {np.round(self.position, 4)} || Velocity = {np.round(self.velocity, 4)} || Acc = {np.round(self.acceleration, 4)} || Time = {timestep/10}')
+
+        assert(self.velocity >= 0)
+        assert(self.position >= 0)
+
+        if timestep < self.veh_info.shape[0]:
+            self.veh_info[timestep] = [self.position, self.velocity, self.acceleration, timestep, 0, 0]
 
 
 class SectionMaxSpeed(object):
