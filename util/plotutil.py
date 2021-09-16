@@ -9,6 +9,8 @@ import io
 import glob
 import math
 import time
+from itertools import chain
+from tqdm import tqdm
 from gym import spaces
 
 
@@ -283,7 +285,7 @@ def car_moving(env, veh_info, startorfinish=False, combine=False):
 
     if combine == True:
         # t3 = time.time()
-        graph = fig2img(info_graph(env, veh_info))
+        graph = fig2img(info_graph([env], [veh_info]))
         plt.close()
         background.paste(graph, (0, 50))
         # print("convert: {}".format(time.time()-t3))
@@ -291,25 +293,27 @@ def car_moving(env, veh_info, startorfinish=False, combine=False):
     draw.text((10, 10), "Time Step: {}s".format(step[-1]/10), (0, 0, 0), timefont)
 
     if startorfinish == True:
-        # for i in range(80):
-        #     env.png_list.append(background)
         dup = 80
-
     else:
-        # env.png_list.append(background)
         dup = 1
 
     return [background] * dup
 
-def make_gif(self, path="./simulate_gif/simulation.gif"):
-        self.png_list[0].save(path, save_all=True, append_images=self.png_list[1:], optimize=False, duration=30, loop=1)
+def make_gif(self, env_num=0):
+    # env = pickle.load(open(f"simulate_gif/scn_{i}_plot_info.pkl", "rb"))
+    self.png_list = []
+    start = car_moving(self, self.vehicle.veh_info[:1], startorfinish=True, combine=True)
+    mid = [car_moving(self, self.vehicle.veh_info[:i+2], startorfinish=False, combine=True) for i in tqdm(range(self.timestep))]
+    end = car_moving(self, self.vehicle.veh_info[:self.timestep+1], startorfinish=True, combine=True)
+
+    self.png_list = start + list(chain(*mid)) + end
+
+    self.png_list[0].save(f"simulate_gif/scn_{0}_carmoving_env{env_num}.gif", save_all=True, append_images=self.png_list[1:], optimize=False, duration=30, loop=1)
 
 def fig2img(fig):
-    # t4 = time.time()
     buf = io.BytesIO()
     fig.savefig(buf)
     buf.seek(0)
     img = Image.open(buf)
 
-    # print("fig2img: {}".format(time.time()-t4))
     return img

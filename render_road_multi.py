@@ -1,5 +1,5 @@
 from pathlib import Path
-from util.plotutil import info_graph, info_graph_separate
+from util.plotutil import info_graph, info_graph_separate, make_gif
 from stable_baselines3.common.callbacks import CheckpointCallback
 from stable_baselines3 import PPO, SAC, DDPG, A2C, DQN, TD3
 import numpy as np
@@ -72,26 +72,26 @@ print("-------------------------------------")
 # env_list = [env1]
 env_list = [env1, env2]
 
+
 info_graph(env_list, [env.vehicle.veh_info[:env.timestep+1] for env in env_list], check_finish=True, path=f'simulate_gif/{modelname}{cuda}/infograph_base_{i}.png')
 info_graph_separate(env_list, [env.vehicle.veh_info[:env.timestep+1] for env in env_list], check_finish=True, path=f'simulate_gif/{modelname}{cuda}/infograph_separate_{i}.png')
 
-# env.car_moving(env.vehicle.veh_info[:1], startorfinish=True, combine=combine)
 
-# for i in range(env.timestep):
-#     env.car_moving(env.vehicle.veh_info[:i+2], startorfinish=False, combine=True)
-
-# env.car_moving(env.vehicle.veh_info[:env.timestep+1], startorfinish=True, combine=combine)
-
-# info_graph(env, env.vehicle.veh_info[:env.timestep+1], check_finish=True, path=f'simulate_gif/{modelname}{cuda}/infograph_{i}.png')
-
-# env.make_gif(path=f'simulate_gif/{modelname}{cuda}/simulate.gif')
+render_gif = True
+if render_gif == True:
+    env_num = 0
+    for env in env_list:
+        print("@ env{}/ Making Car-moving gif".format(env_num))
+        make_gif(env, env_num)
+        env_num += 1
+print("-------------------------------------")
 
 env_num = 0
 for env in env_list:
-    print("@ env{}".format(env_num))
+    print("@ env{}/ Test information".format(env_num))
     env_num += 1
     print("reward coef: ", env.reward_coef)
-    print("reward: {}".format((env.vehicle.veh_info[:, 4]).sum()))
+    print("reward: {}".format(np.round((env.vehicle.veh_info[:, 4]).sum(), 3)))
     # print("execution time: {}".format(np.round(finish-start), 5))
     print("# of episodes: {}".format(env.timestep))
     # print("execution time per episode: {}".format((finish-start)/env.timestep))

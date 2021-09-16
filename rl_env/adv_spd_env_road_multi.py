@@ -281,10 +281,6 @@ class AdvSpdEnvRoadMulti(gym.Env):
         # else:
         self.vehicle = Vehicle(timelimit=self.timelimit)
 
-        # self.signal = [TrafficSignal(location=800, red_time=30, offset_rand=True),
-        #                TrafficSignal(location=600, red_time=30, offset_rand=True),
-        #                TrafficSignal(location=900, red_time=30, offset_rand=True)]
-
         self.signal = []
         for i in range(self.num_signal):
             self.signal.append(TrafficSignal(location=(i+1)*int(self.track_length/(self.num_signal+1)), red_time=30, offset_rand=True))
