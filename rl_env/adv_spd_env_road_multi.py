@@ -619,9 +619,11 @@ class AdvSpdEnvRoadMulti(gym.Env):
 
         reward_norm_velocity = (reward_norm_velocity1 + reward_norm_velocity2)/2
 
-        reward_jerk = np.abs(self.vehicle.jerk)
-        jerk_max = (self.acc_max - self.acc_min) / self.dt
-        reward_jerk /= jerk_max
+        # reward_jerk = np.abs(self.vehicle.jerk)
+        # jerk_max = (self.acc_max - self.acc_min) / self.dt
+        # reward_jerk /= jerk_max
+        reward_jerk = (self.vehicle.acceleration)**2
+        reward_jerk /= max(self.acc_min**2 , self.acc_max**2)
 
         reward_shock = 0
         # if self.vehicle.velocity > self.section.get_cur_max_speed(self.vehicle.position):
