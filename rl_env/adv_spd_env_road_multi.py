@@ -41,6 +41,7 @@ class Vehicle(object):
         if timestep < self.veh_info.shape[0]:
             self.veh_info[timestep] = [self.position, self.velocity, self.acceleration, timestep, 0, 0]
 
+
 class SectionMaxSpeed(object):
     def __init__(self, track_length=500, unit_length=100, min_speed=30, max_speed=50):
         assert(min_speed <= max_speed)
@@ -75,6 +76,7 @@ class SectionMaxSpeed(object):
     def get_distance_to_next_section(self, x):
         i = int(x/self.unit_length)
         return (i+1) * self.unit_length - x
+
 
 class TrafficSignal(object):
     def __init__(self, min_location=250, max_location=350, green_time=30, red_time=90, location=300, offset=40, offset_rand=False):
@@ -241,7 +243,7 @@ class AdvSpdEnvRoadMulti(gym.Env):
         episode_over = (self.vehicle.position > self.track_length) or (self.timestep > self.timelimit)
 
         if episode_over == True:
-            self.reward_at_time = self.reward_at_time[self.reward_at_time[:,0] != 0]
+            self.reward_at_time = self.reward_at_time[self.reward_at_time[:, 0] != 0]
         return ob, reward, episode_over, {'vehicle_ob': self.vehicle.veh_info[-1]}
 
     def _get_signal(self):
@@ -623,7 +625,7 @@ class AdvSpdEnvRoadMulti(gym.Env):
         # jerk_max = (self.acc_max - self.acc_min) / self.dt
         # reward_jerk /= jerk_max
         reward_jerk = (self.vehicle.acceleration)**2
-        reward_jerk /= max(self.acc_min**2 , self.acc_max**2)
+        reward_jerk /= max(self.acc_min**2, self.acc_max**2)
 
         reward_shock = 0
         # if self.vehicle.velocity > self.section.get_cur_max_speed(self.vehicle.position):
@@ -638,7 +640,13 @@ class AdvSpdEnvRoadMulti(gym.Env):
 
         reward_remaining_distance = (self.track_length - self.vehicle.position) / self.track_length
 
-        reward_action_gap = self.vehicle.actiongap / (self.acc_max - self.acc_min)
+        next_des_speed = self.section.get_next_max_speed(self.vehicle.position)
+        cur_des_speed = self.section.get_cur_max_speed(self.vehicle.position)
+
+        reward_action_gap = np.abs(next_des_speed - cur_des_speed) / (self.action_space.n * self.unit_speed/2 / 3.6)
+        reward_action_gap = (reward_action_gap) ** 2
+
+        # reward_action_gap = self.vehicle.actiongap / (self.acc_max - self.acc_min)
         # reward_finishing = 1000 if self.vehicle.position > 490 else 0
         # reward_power = self.energy_consumption() * self.dt / 75 * 0.5
         power = -self.energy_consumption()
