@@ -59,7 +59,7 @@ def info_graph(env_list, veh_info_list, check_finish=False, path='./simulate_gif
             # for i in range(len(section_max_speed)):
             for j in range(cur_idx, min(cur_idx+env.num_action_unit+1, len(env.section.section_max_speed)-1)):
                 ax1.plot(np.linspace(j*unit_length, (j+1)*unit_length, unit_length*10),
-                        [section_max_speed[j]*3.6]*(unit_length*10), lw=2, color='r')
+                         [section_max_speed[j]*3.6]*(unit_length*10), lw=2, color='r')
         ax1.plot(pos[i], vel[i], lw=2, color=color_list[i])
         ax1.plot(pos[i], maxspeed[i], lw=1.5, color=color_list[i], alpha=0.5)
         ax1.set_title('x-v graph')
@@ -84,9 +84,9 @@ def info_graph(env_list, veh_info_list, check_finish=False, path='./simulate_gif
         for j in range(env.num_signal):
             for k in range(int(env.timelimit/10/cycle)+1):
                 ax3.plot(np.linspace(cycle*k-(cycle-env.signal[j].offset), cycle*k-(cycle-env.signal[j].offset)+green, green*10),
-                        [env.signal[j].location]*(green*10), lw=2, color='g')
+                         [env.signal[j].location]*(green*10), lw=2, color='g')
                 ax3.plot(np.linspace(cycle*k-(cycle-env.signal[j].offset)+green, cycle*k-(cycle-env.signal[j].offset)+cycle, red*10),
-                        [env.signal[j].location]*(red*10), lw=2, color='r')
+                         [env.signal[j].location]*(red*10), lw=2, color='r')
         ax3.set_title('x-t graph')
         ax3.set_xlabel('Time in s')
         ax3.set_ylabel('Position in m')
@@ -105,11 +105,11 @@ def info_graph(env_list, veh_info_list, check_finish=False, path='./simulate_gif
 
     plt.subplots_adjust(hspace=0.35)
 
-
     if check_finish == True:
         plt.savefig(path)
 
     return fig
+
 
 def info_graph_separate(env_list, veh_info_list, check_finish=False, path='./simulate_gif/info_graph.png'):
     pos = [veh[:, 0] for veh in veh_info_list]
@@ -163,7 +163,7 @@ def info_graph_separate(env_list, veh_info_list, check_finish=False, path='./sim
             # for i in range(len(section_max_speed)):
             for j in range(cur_idx, min(cur_idx+env.num_action_unit+1, len(env.section.section_max_speed)-1)):
                 ax1.plot(np.linspace(j*unit_length, (j+1)*unit_length, unit_length*10),
-                        [section_max_speed[j]*3.6]*(unit_length*10), lw=2, color='r')
+                         [section_max_speed[j]*3.6]*(unit_length*10), lw=2, color='r')
         ax1.plot(pos[i], vel[i], lw=2, color=color_list[i])
         ax1.plot(pos[i], maxspeed[i], lw=1.5, color=color_list[i], alpha=0.5)
         ax1.set_title('x-v graph')
@@ -172,7 +172,7 @@ def info_graph_separate(env_list, veh_info_list, check_finish=False, path='./sim
         ax1.set_xlim((0.0, env.track_length))
         ax1.set_ylim((0.0, 110))
 
-        # pos-acc   
+        # pos-acc
         ax2.plot(pos[i], acc[i], lw=2, color=color_list[i])
         ax2.set_title('x-a graph')
         ax2.set_xlabel('Position in m')
@@ -182,15 +182,15 @@ def info_graph_separate(env_list, veh_info_list, check_finish=False, path='./sim
 
         # x-t with signal phase
         ax3.plot([x*env.dt for x in range(len(pos[i]))], pos[i], lw=2, color=color_list[i])
-        green = env.signal[0].phase_length[True]
-        red = env.signal[0].phase_length[False]
-        cycle = green+red
         for j in range(env.num_signal):
+            green = env.signal[j].phase_length[True]
+            red = env.signal[j].phase_length[False]
+            cycle = green+red
             for k in range(int(env.timelimit/10/cycle)+1):
                 ax3.plot(np.linspace(cycle*k-(cycle-env.signal[j].offset), cycle*k-(cycle-env.signal[j].offset)+green, green*10),
-                        [env.signal[j].location]*(green*10), lw=2, color='g')
+                         [env.signal[j].location]*(green*10), lw=2, color='g')
                 ax3.plot(np.linspace(cycle*k-(cycle-env.signal[j].offset)+green, cycle*k-(cycle-env.signal[j].offset)+cycle, red*10),
-                        [env.signal[j].location]*(red*10), lw=2, color='r')
+                         [env.signal[j].location]*(red*10), lw=2, color='r')
         ax3.set_title('x-t graph')
         ax3.set_xlabel('Time in s')
         ax3.set_ylabel('Position in m')
@@ -213,6 +213,7 @@ def info_graph_separate(env_list, veh_info_list, check_finish=False, path='./sim
         plt.savefig(path)
 
     return fig
+
 
 def car_moving(env, veh_info, startorfinish=False, combine=False):
     pos = (np.round(veh_info[:, 0], 0)).astype(int)
@@ -299,6 +300,7 @@ def car_moving(env, veh_info, startorfinish=False, combine=False):
 
     return [background] * dup
 
+
 def make_gif(self, env_num=0):
     # env = pickle.load(open(f"simulate_gif/scn_{i}_plot_info.pkl", "rb"))
     self.png_list = []
@@ -308,7 +310,9 @@ def make_gif(self, env_num=0):
 
     self.png_list = start + list(chain(*mid)) + end
 
-    self.png_list[0].save(f"simulate_gif/scn_{0}_carmoving_env{env_num}.gif", save_all=True, append_images=self.png_list[1:], optimize=False, duration=30, loop=1)
+    self.png_list[0].save(f"simulate_gif/scn_{0}_carmoving_env{env_num}.gif", save_all=True,
+                          append_images=self.png_list[1:], optimize=False, duration=30, loop=1)
+
 
 def fig2img(fig):
     buf = io.BytesIO()

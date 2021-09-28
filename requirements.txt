@@ -3,7 +3,7 @@ tensorboard
 tensorboardX
 gym
 seaborn
-
+openpyxl
 
 git+https://github.com/benchoi93/stable-baselines3.git#egg=stable-baselines3
 # torch==1.9.0+cu111

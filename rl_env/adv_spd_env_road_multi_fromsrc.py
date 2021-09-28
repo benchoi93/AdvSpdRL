@@ -1,0 +1,162 @@
+import math
+from typing import DefaultDict
+import numpy as np
+import pandas as pd
+import os
+from rl_env.adv_spd_env_road_multi import Vehicle, TrafficSignal, SectionMaxSpeed, AdvSpdEnvRoadMulti
+
+
+class SectionMaxSpeed(object):
+    def __init__(self, offset_info, track_length, min_speed=30, max_speed=50):
+        self.track_length = track_length
+        self.min_speed = min_speed/3.6
+        self.max_speed = max_speed/3.6
+
+        # offset_info = offset_dict
+        temp = [offset_info[x]['offset'] for x in offset_info]
+        running_length = 0
+        offset_starts = []
+        offset_ends = []
+        for i in range(len(temp)):
+            for offset in temp[i].values():
+                offset_starts.append(np.round(offset['start']+running_length, 3))
+                offset_ends.append(np.round(offset['end']+running_length, 3))
+            running_length += offset['end']
+
+        self.offset_starts = offset_starts
+        self.offset_ends = offset_ends
+
+        self.num_section = len(offset_starts)
+        self.section_max_speed = np.ones(shape=(self.num_section+1,)) * self.max_speed
+        self.sms_list = [[0, self.section_max_speed]]
+
+    def get_cur_idx(self, x):
+        for i, x_i in enumerate(self.offset_starts):
+            if x_i > x:
+                break
+        return i-1, x_i
+
+    def get_cur_max_speed(self, x):
+        i, _ = self.get_cur_idx(x)
+        return self.section_max_speed[i]
+
+    def get_next_max_speed(self, x):
+        i, _ = self.get_cur_idx(x)
+        return self.section_max_speed[i+1]
+
+    def get_distance_to_next_section(self, x):
+        _, x_i = self.get_cur_idx(x)
+        return x_i - x
+
+
+class AdvSpdEnvRoadMulti_SRC(AdvSpdEnvRoadMulti):
+    def __init__(self, src, num_signal=5, num_action_unit=3, dt=0.1, action_dt=5, track_length=1500.0, acc_max=2, acc_min=-3,
+                 speed_max=50.0/3.6, dec_th=-3, stop_th=2, reward_coef=[1, 10, 1, 0.01, 0, 1, 1, 1],
+                 timelimit=7500, unit_length=100, unit_speed=10, stochastic=False, min_location=250, max_location=350):
+
+        super(AdvSpdEnvRoadMulti_SRC, self).__init__(num_signal, num_action_unit, dt, action_dt, track_length, acc_max, acc_min,
+                                                     speed_max, dec_th, stop_th, reward_coef, timelimit, unit_length, unit_speed, stochastic, min_location, max_location)
+
+        route_src = pd.read_excel(src)
+
+        offset_dict = dict()
+        signal_dict = dict()
+
+        # for i in range(route_src.shape[0]):
+        running_distance = 0
+        signal_idx = 0
+        for i in range(2, 274):
+            if not route_src.iloc[i]['linkSeq'] in offset_dict.keys():
+                offset_dict[route_src.iloc[i]['linkSeq']] = {"linkID": route_src.iloc[i]['linkID'],
+                                                             "offset": {}}
+            offset_dict[route_src.iloc[i]['linkSeq']]['offset'][route_src.iloc[i]['offsetSeq']] = {"start": route_src.iloc[i]['offsetStart']/100,
+                                                                                                   "end": route_src.iloc[i]['offsetEnd']/100}
+            running_distance += route_src.iloc[i]['offsetEnd']/100-route_src.iloc[i]['offsetStart']/100
+            if route_src.iloc[i]['existSignal']:
+                signal_dict[signal_idx] = {"location": running_distance,
+                                           "signalGreen": route_src.iloc[i]['signalGreenPhaseLength'],
+                                           "signalRed": route_src.iloc[i]['siganlRedPhaseLength'],
+                                           "signalOffset": route_src.iloc[i]['signalOffset']}
+                signal_idx += 1
+
+        self.offset_dict = offset_dict
+        self.signal_dict = signal_dict
+        self.track_length = running_distance
+        self.num_signal = len(signal_dict)
+
+        self.reset()
+
+    def reset(self):
+        self.vehicle = Vehicle(timelimit=self.timelimit)
+
+        self.signal = []
+        for signal_i in self.signal_dict.values():
+            new_signal = TrafficSignal(location=signal_i['location'],
+                                       red_time=signal_i['signalRed'],
+                                       green_time=signal_i['signalGreen'],
+                                       offset=signal_i['signalOffset'])
+            self.signal.append(new_signal)
+
+        self.section = SectionMaxSpeed(self.offset_dict, self.track_length, max_speed=self.speed_max*3.6)
+        self.section_input = SectionMaxSpeed(self.offset_dict, self.track_length, max_speed=self.speed_max*3.6)
+        # self.section_input.section_max_speed
+
+        self.timestep = 0
+        self.violation = False
+
+        self.state = self._get_state()
+
+        self.reward = 0
+        self.done = False
+        self.info = {}
+        self.png_list = []
+        self.reward_at_time = np.zeros((int(self.timelimit/self.action_dt/10), 2))
+
+        return self.state
+
+    def _take_action(self, action):
+        applied_action = (action + 1) * self.unit_speed
+
+        cur_idx, _ = self.section.get_cur_idx(self.vehicle.position)
+        self.section.section_max_speed[cur_idx] = applied_action / 3.6
+
+        cur_idx_old = int(cur_idx)
+        reward_list = []
+
+        while cur_idx == cur_idx_old:
+            self.timestep += 1
+
+            acceleration = self.get_veh_acc_idm(self.vehicle.position, self.vehicle.velocity)
+
+            assert(acceleration >= self.acc_min)
+            assert(acceleration <= self.acc_max)
+
+            if self.vehicle.velocity + acceleration * self.dt < 0:
+                acceleration = - self.vehicle.velocity / self.dt
+
+            self.vehicle.update(acceleration, self.timestep, self.dt)
+            cur_position = self.vehicle.position
+
+            reward = self._get_reward()
+            reward_with_coef = np.array(reward).dot(np.array(self.reward_coef))
+            reward_list.append(reward_with_coef)
+
+            cur_idx, _ = self.section.get_cur_idx(self.vehicle.position)
+            try:
+                self.vehicle.veh_info[self.timestep][4] = reward_with_coef
+                self.section.sms_list.append([self.timestep/10, self.section.section_max_speed])
+                self.vehicle.veh_info[self.timestep][5] = self.section.section_max_speed[math.floor(self.vehicle.position/self.unit_length)]
+            except:
+                # print(self.timestep)
+                break
+
+            if self.vehicle.position > self.track_length:
+                break
+
+            if self.timestep > self.timelimit:
+                break
+
+        assert(self.vehicle.velocity >= 0)
+        assert(self.vehicle.position >= 0)
+
+        return reward_list

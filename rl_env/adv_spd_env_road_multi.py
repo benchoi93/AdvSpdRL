@@ -79,9 +79,9 @@ class SectionMaxSpeed(object):
 
 
 class TrafficSignal(object):
-    def __init__(self, min_location=250, max_location=350, green_time=30, red_time=90, location=300, offset=40, offset_rand=False):
+    def __init__(self, min_location=250, max_location=350, green_time: int = 30, red_time: int = 90, location=300, offset: int = 40, offset_rand=False):
 
-        self.phase_length = {True: green_time, False: red_time}
+        self.phase_length = {True: int(green_time), False: int(red_time)}
         self.cycle_length = sum(self.phase_length.values())
 
         self.location = location
@@ -135,6 +135,8 @@ class AdvSpdEnvRoadMulti(gym.Env):
                  speed_max=50.0/3.6, dec_th=-3, stop_th=2, reward_coef=[1, 10, 1, 0.01, 0, 1, 1, 1],
                  timelimit=7500, unit_length=100, unit_speed=10, stochastic=False, min_location=250, max_location=350):
 
+        super(AdvSpdEnvRoadMulti, self).__init__()
+
         # num_observations = 2
 
         self.num_signal = num_signal
@@ -185,7 +187,11 @@ class AdvSpdEnvRoadMulti(gym.Env):
 
         self.observation_space = spaces.Box(low=np.zeros(9),
                                             high=np.ones(9))
-        self.reset()
+
+        try:
+            self.reset()
+        except:
+            pass
 
         # self.png_list = []
         # self.scenario = scenario
@@ -628,6 +634,7 @@ class AdvSpdEnvRoadMulti(gym.Env):
         reward_jerk /= max(self.acc_min**2, self.acc_max**2)
 
         reward_shock = 0
+
         # if self.vehicle.velocity > self.section.get_cur_max_speed(self.vehicle.position):
         #     reward_shock += 1
         if self.vehicle.velocity > self.speed_max:
