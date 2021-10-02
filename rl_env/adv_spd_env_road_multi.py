@@ -237,20 +237,24 @@ class AdvSpdEnvRoadMulti(gym.Env):
         # prev_ob = self.state
 
         reward_list = self._take_action(action)
-
+        # print(reward_list)
         # print(self.timestep/10)
 
         ob = self._get_state()
 
-        reward = sum(reward_list)
+        # reward = sum(reward_list)
+        # self.reward_at_time[int(self.timestep/self.action_dt/10)-1] = [self.timestep/10, reward]
 
-        self.reward_at_time[int(self.timestep/self.action_dt/10)-1] = [self.timestep/10, reward]
-
+        reward = np.sum(reward_list, axis=0)
+        total_reward = np.array(reward).dot(np.array(self.reward_coef))
+        reward = np.append(reward, np.sum(total_reward))
+        self.reward_per_unitlen.append([self.timestep/10, reward])
+        
         episode_over = (self.vehicle.position > self.track_length) or (self.timestep > self.timelimit)
 
-        if episode_over == True:
-            self.reward_at_time = self.reward_at_time[self.reward_at_time[:, 0] != 0]
-        return ob, reward, episode_over, {'vehicle_ob': self.vehicle.veh_info[-1]}
+        # if episode_over == True:
+        #     self.reward_at_time = self.reward_at_time[self.reward_at_time[:, 0] != 0]
+        return ob, total_reward, episode_over, {'vehicle_ob': self.vehicle.veh_info[-1]}
 
     def _get_signal(self):
         # location = 1e10
@@ -306,7 +310,8 @@ class AdvSpdEnvRoadMulti(gym.Env):
         self.done = False
         self.info = {}
         self.png_list = []
-        self.reward_at_time = np.zeros((int(self.timelimit/self.action_dt/10), 2))
+        self.reward_per_unitlen = []
+        # np.zeros((int(self.timelimit/self.action_dt/10), 2))
 
         return self.state
 
@@ -552,7 +557,9 @@ class AdvSpdEnvRoadMulti(gym.Env):
 
             reward = self._get_reward()
             reward_with_coef = np.array(reward).dot(np.array(self.reward_coef))
-            reward_list.append(reward_with_coef)
+            
+            # reward_list.append(reward_with_coef)
+            reward_list.append(reward)
 
             cur_idx = int(self.vehicle.position/self.unit_length) + 1
             try:

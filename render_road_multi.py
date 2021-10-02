@@ -1,5 +1,5 @@
 from pathlib import Path
-from util.plotutil import info_graph, info_graph_separate, make_gif
+from util.plotutil import info_graph, info_graph_separate, info_graph_detail, make_gif
 from stable_baselines3.common.callbacks import CheckpointCallback
 from stable_baselines3 import PPO, SAC, DDPG, A2C, DQN, TD3
 import numpy as np
@@ -73,11 +73,12 @@ print("-------------------------------------")
 env_list = [env1, env2]
 
 
-info_graph(env_list, [env.vehicle.veh_info[:env.timestep+1] for env in env_list], check_finish=True, path=f'simulate_gif/{modelname}{cuda}/infograph_base_{i}.png')
-info_graph_separate(env_list, [env.vehicle.veh_info[:env.timestep+1] for env in env_list], check_finish=True, path=f'simulate_gif/{modelname}{cuda}/infograph_separate_{i}.png')
+# info_graph(env_list, [env.vehicle.veh_info[:env.timestep+1] for env in env_list], check_finish=True, path=f'simulate_gif/{modelname}{cuda}/infograph_base_{i}.png')
+info_graph_separate(env_list, [env.vehicle.veh_info[:env.timestep+1] for env in env_list], path=f'simulate_gif/{modelname}{cuda}/infograph_separate_{i}.png')
+info_graph_detail(env_list, [env.vehicle.veh_info[:env.timestep+1] for env in env_list], path=f'simulate_gif/{modelname}{cuda}/infograph_{i}.png')
 
 
-render_gif = True
+render_gif = False
 if render_gif == True:
     env_num = 0
     for env in env_list:
