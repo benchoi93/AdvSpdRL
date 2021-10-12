@@ -15,13 +15,14 @@ from tqdm import tqdm
 from gym import spaces
 
 
-def info_graph(env_list, veh_info_list, check_finish=False, path='./simulate_gif/info_graph.png'):
+def info_graph(env_list, veh_info_list, check_finish=False, separate=True, path='./simulate_gif/info_graph.png'):
     pos = [veh[:, 0] for veh in veh_info_list]
     vel = [veh[:, 1]*3.6 for veh in veh_info_list]
     acc = [veh[:, 2] for veh in veh_info_list]
     step = [veh[:, 3]/10 for veh in veh_info_list]
-    reward = [env_list[i].reward_at_time[env_list[i].reward_at_time[:, 0] <= step[i][-1]] for i in range(len(env_list))]
     maxspeed = [veh[:, 5]*3.6 for veh in veh_info_list]
+    
+    reward = [env.reward_per_unitlen for env in env_list]
 
     timestep = np.max([env.timestep for env in env_list])
 
@@ -94,15 +95,17 @@ def info_graph(env_list, veh_info_list, check_finish=False, path='./simulate_gif
         ax3.set_xlim((0.0, math.ceil(timestep/10)))
         ax3.set_ylim((0, env.track_length))
 
-    # t-reward
-        ax4.scatter(reward[i][:, 0], reward[i][:, 1], color=color_list[i], s=15)
-        ax4.plot(reward[i][:, 0], reward[i][:, 1], lw=2, color=color_list[i], alpha=0.5)
+        # t-reward
+        t = np.array(list(map(lambda x:x[0], reward[i])))
+        t = t[np.where(t <= step[i][-1])]
+        reward_list = np.array(list(map(lambda x:x[1][-1], reward[i])))
+        reward_list = reward_list[:len(t)]
+        ax4.scatter(t, reward_list, color=color_list[i], s=15)
+        ax4.plot(t, reward_list, lw=2, color=color_list[i], alpha=0.5)
         ax4.set_title('reward-t graph')
         ax4.set_xlabel('Time in s')
         ax4.set_ylabel('Reward')
         ax4.set_xlim((0.0, math.ceil(timestep/10)))
-        reward_min = np.min([np.round(np.min(env.reward_at_time[:, 1]), 0) for env in env_list])-2
-        ax4.set_ylim((reward_min, 3.0))
 
     plt.subplots_adjust(hspace=0.35)
 
@@ -117,7 +120,7 @@ def info_graph_separate(env_list, veh_info_list, path='./simulate_gif/info_graph
     vel = [veh[:, 1]*3.6 for veh in veh_info_list]
     acc = [veh[:, 2] for veh in veh_info_list]
     step = [veh[:, 3]/10 for veh in veh_info_list]
-    reward = [env_list[i].reward_at_time[env_list[i].reward_at_time[:, 0] <= step[i][-1]] for i in range(len(env_list))]
+    reward = [env.reward_per_unitlen for env in env_list]
     maxspeed = [veh[:, 5]*3.6 for veh in veh_info_list]
 
     # info figures
@@ -341,9 +344,9 @@ def info_graph_detail(env_list, veh_info_list, separate = True, path='./simulate
         
         ax_list = []
         ax_list.append(fig.add_subplot(gs[0:3, 0]))   # x-t
-        ax_list.append(fig.add_subplot(gs[0, 1]))         # x-v
-        ax_list.append(fig.add_subplot(gs[1, 1]))         # x-a
-        ax_list.append(fig.add_subplot(gs[2, 1]))         # r-t
+        ax_list.append(fig.add_subplot(gs[0, 1]))     # x-v
+        ax_list.append(fig.add_subplot(gs[1, 1]))     # x-a
+        ax_list.append(fig.add_subplot(gs[2, 1]))     # r-t
         for j in range(num_reward):
             if j < 3:
                 ax_list.append(fig.add_subplot(gs[j%3, 2]))
