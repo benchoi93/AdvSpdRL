@@ -74,8 +74,9 @@ env_list = [env1, env2]
 
 
 # info_graph(env_list, [env.vehicle.veh_info[:env.timestep+1] for env in env_list], check_finish=True, path=f'simulate_gif/{modelname}{cuda}/infograph_base_{i}.png')
-info_graph_separate(env_list, [env.vehicle.veh_info[:env.timestep+1] for env in env_list], path=f'simulate_gif/{modelname}{cuda}/infograph_separate_{i}.png')
-info_graph_detail(env_list, [env.vehicle.veh_info[:env.timestep+1] for env in env_list], path=f'simulate_gif/{modelname}{cuda}/infograph_{i}.png')
+# info_graph_separate(env_list, [env.vehicle.veh_info[:env.timestep+1] for env in env_list], path=f'simulate_gif/{modelname}{cuda}/infograph_separate_{i}.png')
+info_graph_detail(env_list, [env.vehicle.veh_info[:env.timestep+1] for env in env_list], True, path=f'simulate_gif/{modelname}{cuda}/infograph_separate{i}.png')
+info_graph_detail(env_list, [env.vehicle.veh_info[:env.timestep+1] for env in env_list], False, path=f'simulate_gif/{modelname}{cuda}/infograph_nonseparate{i}.png')
 
 
 render_gif = False

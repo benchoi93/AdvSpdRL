@@ -214,7 +214,7 @@ def info_graph_separate(env_list, veh_info_list, path='./simulate_gif/info_graph
 
     return fig
 
-def info_graph_detail(env_list, veh_info_list, path='./simulate_gif/info_graph.png'):
+def info_graph_detail(env_list, veh_info_list, separate = True, path='./simulate_gif/info_graph.png'):
     pos = [veh[:, 0] for veh in veh_info_list]
     vel = [veh[:, 1]*3.6 for veh in veh_info_list]
     acc = [veh[:, 2] for veh in veh_info_list]
@@ -245,97 +245,171 @@ def info_graph_detail(env_list, veh_info_list, path='./simulate_gif/info_graph.p
     plt.rc('xtick', labelsize=15)
     plt.rc('ytick', labelsize=15)
 
-    fig = plt.figure(figsize=(15*(2+np.ceil(num_reward/3)), 20*len(env_list)))
-    fig.clf()
-    
-    width_ratios = [3,3]
-    for i in range(int(np.ceil(num_reward/3))):
-        width_ratios.append(2)
-    gs = GridSpec(nrows=3*len(env_list), ncols=int(2+np.ceil(num_reward/3)), width_ratios=width_ratios)
-    
-    ax_list = []
-    for i in range(len(env_list)):
-        temp = []
-        temp.append(fig.add_subplot(gs[0+3*i:3+3*i, 0]))   # x-t
-        temp.append(fig.add_subplot(gs[0+3*i, 1]))         # x-v
-        temp.append(fig.add_subplot(gs[1+3*i, 1]))         # x-a
-        temp.append(fig.add_subplot(gs[2+3*i, 1]))         # r-t
+    if separate == True:
+        fig = plt.figure(figsize=(15*(2+np.ceil(num_reward/3)), 20*len(env_list)))
+        fig.clf()
+        
+        width_ratios = [3,3]
+        for i in range(int(np.ceil(num_reward/3))):
+            width_ratios.append(2)
+        gs = GridSpec(nrows=3*len(env_list), ncols=int(2+np.ceil(num_reward/3)), width_ratios=width_ratios)
+        
+        ax_list = []
+        for i in range(len(env_list)):
+            temp = []
+            temp.append(fig.add_subplot(gs[0+3*i:3+3*i, 0]))   # x-t
+            temp.append(fig.add_subplot(gs[0+3*i, 1]))         # x-v
+            temp.append(fig.add_subplot(gs[1+3*i, 1]))         # x-a
+            temp.append(fig.add_subplot(gs[2+3*i, 1]))         # r-t
+            for j in range(num_reward):
+                if j < 3:
+                    temp.append(fig.add_subplot(gs[j%3+3*i, 2]))
+                elif 3 <= j < 6:
+                    temp.append(fig.add_subplot(gs[j%3+3*i, 3]))
+                elif 6 <= j < 8:
+                    temp.append(fig.add_subplot(gs[j%3+3*i, 4]))
+
+            ax_list.append(temp)
+
+        color_list = ['k', 'darkorange', 'indigo', 'b']
+
+        for i in range(len(env_list)):
+            env = env_list[i]
+
+            # x-t with signal phase
+            ax_list[i][0].plot([x*env.dt for x in range(len(pos[i]))], pos[i], lw=2, color=color_list[i])
+            green = env.signal[0].phase_length[True]
+            red = env.signal[0].phase_length[False]
+            cycle = green+red
+            for j in range(env.num_signal):
+                for k in range(int(env.timelimit/10/cycle)+1):
+                    ax_list[i][0].plot(np.linspace(cycle*k-(cycle-env.signal[j].offset), cycle*k-(cycle-env.signal[j].offset)+green, green*10),
+                            [env.signal[j].location]*(green*10), lw=2, color='g')
+                    ax_list[i][0].plot(np.linspace(cycle*k-(cycle-env.signal[j].offset)+green, cycle*k-(cycle-env.signal[j].offset)+cycle, red*10),
+                            [env.signal[j].location]*(red*10), lw=2, color='r')
+            ax_list[i][0].set_title('x-t graph')
+            ax_list[i][0].set_xlabel('Time in s')
+            ax_list[i][0].set_ylabel('Position in m')
+            ax_list[i][0].set_xlim((0.0, math.ceil(timestep/10)))
+            ax_list[i][0].set_ylim((0, env.track_length))
+
+            # pos-vel
+            ax_list[i][1].plot(pos[i], vel[i], lw=2, color=color_list[i])
+            ax_list[i][1].plot(pos[i], maxspeed[i], lw=1.5, color=color_list[i], alpha=0.5)
+            ax_list[i][1].set_title('x-v graph')
+            ax_list[i][1].set_xlabel('Position in m')
+            ax_list[i][1].set_ylabel('Velocity in km/h')
+            ax_list[i][1].set_xlim((0.0, env.track_length))
+            ax_list[i][1].set_ylim((0.0, 110))
+
+            # pos-acc
+            ax_list[i][2].plot(pos[i], acc[i], lw=1, color=color_list[i])
+            ax_list[i][2].set_title('x-a graph')
+            ax_list[i][2].set_xlabel('Position in m')
+            ax_list[i][2].set_ylabel('Acceleration in m/s²')
+            ax_list[i][2].set_xlim((0.0, env.track_length))
+            ax_list[i][2].set_ylim((env.acc_min-1, env.acc_max+1))
+            
+            reward_idx = np.append(reward_idx, -1)
+            reward_list = [list(map(lambda x:x[1][j], reward[i])) for j in reward_idx]
+
+            # t-total_reward
+            t = list(map(lambda x:x[0], reward[i]))
+            ax_list[i][3].scatter(t, reward_list[-1], color=color_list[i], s=12)
+            ax_list[i][3].plot(t, reward_list[-1], lw=2, color=color_list[i], alpha=0.5)
+            ax_list[i][3].set_title('reward-t graph')
+            ax_list[i][3].set_xlabel('Time in s')
+            ax_list[i][3].set_ylabel('Reward')
+            ax_list[i][3].set_xlim((0.0, math.ceil(timestep/10)))
+
+            for j in range(num_reward):
+                ax_list[i][4+j].scatter(t, [reward_list[j][i]*reward_coef[j] for i in range(len(reward_list[j]))], color=color_list[i], s=12)
+                ax_list[i][4+j].plot(t,[reward_list[j][i]*reward_coef[j] for i in range(len(reward_list[j]))], lw=2, color=color_list[i], alpha=0.5)
+                ax_list[i][4+j].set_title('{}-t graph (Coef = {})'.format(reward_name[j], reward_coef[j]))
+                ax_list[i][4+j].set_xlabel('Time in s')
+                ax_list[i][4+j].set_ylabel('{}'.format(reward_name[j]))
+                ax_list[i][4+j].set_xlim((0.0, math.ceil(timestep/10)))
+        
+    else:
+        fig = plt.figure(figsize=(15*(2+np.ceil(num_reward/3)), 20))
+        fig.clf()
+        
+        width_ratios = [3,3]
+        for i in range(int(np.ceil(num_reward/3))):
+            width_ratios.append(2)
+        gs = GridSpec(nrows=3, ncols=int(2+np.ceil(num_reward/3)), width_ratios=width_ratios)
+        
+        ax_list = []
+        ax_list.append(fig.add_subplot(gs[0:3, 0]))   # x-t
+        ax_list.append(fig.add_subplot(gs[0, 1]))         # x-v
+        ax_list.append(fig.add_subplot(gs[1, 1]))         # x-a
+        ax_list.append(fig.add_subplot(gs[2, 1]))         # r-t
         for j in range(num_reward):
             if j < 3:
-                temp.append(fig.add_subplot(gs[j%3+3*i, 2]))
+                ax_list.append(fig.add_subplot(gs[j%3, 2]))
             elif 3 <= j < 6:
-                temp.append(fig.add_subplot(gs[j%3+3*i, 3]))
+                ax_list.append(fig.add_subplot(gs[j%3, 3]))
             elif 6 <= j < 8:
-                temp.append(fig.add_subplot(gs[j%3+3*i, 4]))
+                ax_list.append(fig.add_subplot(gs[j%3, 4]))
 
-        ax_list.append(temp)
+        color_list = ['k', 'darkorange', 'indigo', 'b']
 
-    color_list = ['k', 'darkorange', 'indigo', 'b']
+        for i in range(len(env_list)):
+            env = env_list[i]
 
-    for i in range(len(env_list)):
-        env = env_list[i]
+            # x-t with signal phase
+            ax_list[0].plot([x*env.dt for x in range(len(pos[i]))], pos[i], lw=2, color=color_list[i])
+            green = env.signal[0].phase_length[True]
+            red = env.signal[0].phase_length[False]
+            cycle = green+red
+            for j in range(env.num_signal):
+                for k in range(int(env.timelimit/10/cycle)+1):
+                    ax_list[0].plot(np.linspace(cycle*k-(cycle-env.signal[j].offset), cycle*k-(cycle-env.signal[j].offset)+green, green*10),
+                            [env.signal[j].location]*(green*10), lw=2, color='g')
+                    ax_list[0].plot(np.linspace(cycle*k-(cycle-env.signal[j].offset)+green, cycle*k-(cycle-env.signal[j].offset)+cycle, red*10),
+                            [env.signal[j].location]*(red*10), lw=2, color='r')
+            ax_list[0].set_title('x-t graph')
+            ax_list[0].set_xlabel('Time in s')
+            ax_list[0].set_ylabel('Position in m')
+            ax_list[0].set_xlim((0.0, math.ceil(timestep/10)))
+            ax_list[0].set_ylim((0, env.track_length))
 
-        # x-t with signal phase
-        ax_list[i][0].plot([x*env.dt for x in range(len(pos[i]))], pos[i], lw=2, color=color_list[i])
-        green = env.signal[0].phase_length[True]
-        red = env.signal[0].phase_length[False]
-        cycle = green+red
-        for j in range(env.num_signal):
-            for k in range(int(env.timelimit/10/cycle)+1):
-                ax_list[i][0].plot(np.linspace(cycle*k-(cycle-env.signal[j].offset), cycle*k-(cycle-env.signal[j].offset)+green, green*10),
-                        [env.signal[j].location]*(green*10), lw=2, color='g')
-                ax_list[i][0].plot(np.linspace(cycle*k-(cycle-env.signal[j].offset)+green, cycle*k-(cycle-env.signal[j].offset)+cycle, red*10),
-                        [env.signal[j].location]*(red*10), lw=2, color='r')
-        ax_list[i][0].set_title('x-t graph')
-        ax_list[i][0].set_xlabel('Time in s')
-        ax_list[i][0].set_ylabel('Position in m')
-        ax_list[i][0].set_xlim((0.0, math.ceil(timestep/10)))
-        ax_list[i][0].set_ylim((0, env.track_length))
+            # pos-vel
+            ax_list[1].plot(pos[i], vel[i], lw=2, color=color_list[i])
+            ax_list[1].plot(pos[i], maxspeed[i], lw=1.5, color=color_list[i], alpha=0.5)
+            ax_list[1].set_title('x-v graph')
+            ax_list[1].set_xlabel('Position in m')
+            ax_list[1].set_ylabel('Velocity in km/h')
+            ax_list[1].set_xlim((0.0, env.track_length))
+            ax_list[1].set_ylim((0.0, 110))
 
-        # pos-vel
-        # section_max_speed = env.section.sms_list[int(step[i][-1]*10)][1]
-        # unit_length = env.unit_length
-        # cur_idx = int(env.vehicle.position/env.unit_length)
-        # if check_finish == False:
-        #     # for i in range(len(section_max_speed)):
-        #     for j in range(cur_idx, min(cur_idx+env.num_action_unit+1, len(env.section.section_max_speed)-1)):
-        #         ax1.plot(np.linspace(j*unit_length, (j+1)*unit_length, unit_length*10),
-        #                 [section_max_speed[j]*3.6]*(unit_length*10), lw=2, color='r')
-        ax_list[i][1].plot(pos[i], vel[i], lw=2, color=color_list[i])
-        ax_list[i][1].plot(pos[i], maxspeed[i], lw=1.5, color=color_list[i], alpha=0.5)
-        ax_list[i][1].set_title('x-v graph')
-        ax_list[i][1].set_xlabel('Position in m')
-        ax_list[i][1].set_ylabel('Velocity in km/h')
-        ax_list[i][1].set_xlim((0.0, env.track_length))
-        ax_list[i][1].set_ylim((0.0, 110))
+            # pos-acc
+            ax_list[2].plot(pos[i], acc[i], lw=1, color=color_list[i])
+            ax_list[2].set_title('x-a graph')
+            ax_list[2].set_xlabel('Position in m')
+            ax_list[2].set_ylabel('Acceleration in m/s²')
+            ax_list[2].set_xlim((0.0, env.track_length))
+            ax_list[2].set_ylim((env.acc_min-1, env.acc_max+1))
+            
+            reward_idx = np.append(reward_idx, -1)
+            reward_list = [list(map(lambda x:x[1][j], reward[i])) for j in reward_idx]
 
-        # pos-acc
-        ax_list[i][2].plot(pos[i], acc[i], lw=1, color=color_list[i])
-        ax_list[i][2].set_title('x-a graph')
-        ax_list[i][2].set_xlabel('Position in m')
-        ax_list[i][2].set_ylabel('Acceleration in m/s²')
-        ax_list[i][2].set_xlim((0.0, env.track_length))
-        ax_list[i][2].set_ylim((env.acc_min-1, env.acc_max+1))
-        
-        reward_idx = np.append(reward_idx, -1)
-        reward_list = [list(map(lambda x:x[1][j], reward[i])) for j in reward_idx]
+            # t-total_reward
+            t = list(map(lambda x:x[0], reward[i]))
+            ax_list[3].scatter(t, reward_list[-1], color=color_list[i], s=12)
+            ax_list[3].plot(t, reward_list[-1], lw=2, color=color_list[i], alpha=0.5)
+            ax_list[3].set_title('reward-t graph')
+            ax_list[3].set_xlabel('Time in s')
+            ax_list[3].set_ylabel('Reward')
+            ax_list[3].set_xlim((0.0, math.ceil(timestep/10)))
 
-        # t-total_reward
-        t = list(map(lambda x:x[0], reward[i]))
-        ax_list[i][3].scatter(t, reward_list[-1], color=color_list[i], s=12)
-        ax_list[i][3].plot(t, reward_list[-1], lw=2, color=color_list[i], alpha=0.5)
-        ax_list[i][3].set_title('reward-t graph')
-        ax_list[i][3].set_xlabel('Time in s')
-        ax_list[i][3].set_ylabel('Reward')
-        ax_list[i][3].set_xlim((0.0, math.ceil(timestep/10)))
-
-        for j in range(num_reward):
-            ax_list[i][4+j].scatter(t, reward_list[j], color=color_list[i], s=12)
-            ax_list[i][4+j].plot(t, reward_list[j], lw=2, color=color_list[i], alpha=0.5)
-            ax_list[i][4+j].set_title('{}-t graph (Coef = {})'.format(reward_name[j], reward_coef[j]))
-            ax_list[i][4+j].set_xlabel('Time in s')
-            ax_list[i][4+j].set_ylabel('{}'.format(reward_name[j]))
-            ax_list[i][4+j].set_xlim((0.0, math.ceil(timestep/10)))
+            for j in range(num_reward):
+                ax_list[4+j].scatter(t, [reward_list[j][i]*reward_coef[j] for i in range(len(reward_list[j]))], color=color_list[i], s=12)
+                ax_list[4+j].plot(t,[reward_list[j][i]*reward_coef[j] for i in range(len(reward_list[j]))], lw=2, color=color_list[i], alpha=0.5)
+                ax_list[4+j].set_title('{}-t graph (Coef = {})'.format(reward_name[j], reward_coef[j]))
+                ax_list[4+j].set_xlabel('Time in s')
+                ax_list[4+j].set_ylabel('{}'.format(reward_name[j]))
+                ax_list[4+j].set_xlim((0.0, math.ceil(timestep/10)))
 
         plt.subplots_adjust(hspace=0.5)
 
