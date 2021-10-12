@@ -411,7 +411,7 @@ def info_graph_detail(env_list, veh_info_list, separate = True, path='./simulate
                 ax_list[4+j].set_ylabel('{}'.format(reward_name[j]))
                 ax_list[4+j].set_xlim((0.0, math.ceil(timestep/10)))
 
-        plt.subplots_adjust(hspace=0.5)
+    plt.subplots_adjust(hspace=0.5)
 
     plt.savefig(path, bbox_inches="tight")
 
