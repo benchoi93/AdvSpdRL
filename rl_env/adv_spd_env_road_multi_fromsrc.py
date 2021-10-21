@@ -140,8 +140,8 @@ class AdvSpdEnvRoadMulti_SRC(AdvSpdEnvRoadMulti):
 
             reward = self._get_reward()
             reward_with_coef = np.array(reward).dot(np.array(self.reward_coef))
-            reward_list.append(reward_with_coef)
-
+            reward_list.append(reward)
+            
             cur_idx, _ = self.section.get_cur_idx(self.vehicle.position)
             try:
                 self.vehicle.veh_info[self.timestep][4] = reward_with_coef
