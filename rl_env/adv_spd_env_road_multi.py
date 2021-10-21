@@ -560,8 +560,6 @@ class AdvSpdEnvRoadMulti(gym.Env):
 
             reward = self._get_reward()
             reward_with_coef = np.array(reward).dot(np.array(self.reward_coef))
-
-            # reward_list.append(reward_with_coef)
             reward_list.append(reward)
 
             cur_idx = int(self.vehicle.position/self.unit_length) + 1

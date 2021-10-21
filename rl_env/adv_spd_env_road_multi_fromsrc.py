@@ -110,7 +110,8 @@ class AdvSpdEnvRoadMulti_SRC(AdvSpdEnvRoadMulti):
         self.done = False
         self.info = {}
         self.png_list = []
-        self.reward_at_time = np.zeros((int(self.timelimit/self.action_dt/10), 2))
+        self.reward_per_unitlen = []
+        # self.reward_at_time = np.zeros((int(self.timelimit/self.action_dt/10), 2))
 
         return self.state
 
