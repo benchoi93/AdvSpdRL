@@ -136,3 +136,6 @@ simulate_gif/
 *.pkl
 simulate_gif/
 *.gif
+simulate_gif_fromsrc/
+gifout/
+simulate_gif_1012/
