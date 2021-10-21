@@ -249,7 +249,7 @@ class AdvSpdEnvRoadMulti(gym.Env):
         total_reward = np.array(reward).dot(np.array(self.reward_coef))
         reward = np.append(reward, np.sum(total_reward))
         self.reward_per_unitlen.append([self.timestep/10, reward])
-        
+
         episode_over = (self.vehicle.position > self.track_length) or (self.timestep > self.timelimit)
 
         # if episode_over == True:
@@ -267,6 +267,9 @@ class AdvSpdEnvRoadMulti(gym.Env):
         if sig is None:
             sig = TrafficSignal(location=1e10, green_time=119, red_time=1)
         return sig
+
+    def get_state(self):
+        return self._get_state()
 
     def _get_state(self):
         sig = self._get_signal()
@@ -557,7 +560,7 @@ class AdvSpdEnvRoadMulti(gym.Env):
 
             reward = self._get_reward()
             reward_with_coef = np.array(reward).dot(np.array(self.reward_coef))
-            
+
             # reward_list.append(reward_with_coef)
             reward_list.append(reward)
 
