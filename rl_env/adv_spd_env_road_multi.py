@@ -81,7 +81,10 @@ class SectionMaxSpeed(object):
 class TrafficSignal(object):
     def __init__(self, min_location=250, max_location=350, green_time: int = 30, red_time: int = 90, location=300, offset: int = 40, offset_rand=False):
 
-        self.phase_length = {True: int(green_time), False: int(red_time)}
+        self.green_time = int(green_time)
+        self.red_time = int(red_time)
+
+        self.phase_length = {True: self.green_time, False: self.red_time}
         self.cycle_length = sum(self.phase_length.values())
 
         self.location = location
