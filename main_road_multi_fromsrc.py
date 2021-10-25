@@ -5,7 +5,7 @@ from stable_baselines3.common.monitor import Monitor
 from torch import nn
 from torch._C import device
 # from rl_env.adv_spd_env import AdvSpdEnv
-from rl_env.adv_spd_env_road_multi import AdvSpdEnvRoadMulti
+from rl_env.adv_spd_env_road_multi_fromsrc import AdvSpdEnvRoadMulti_SRC
 import numpy as np
 
 from stable_baselines3 import PPO, SAC, DDPG, A2C, DQN, TD3
@@ -55,21 +55,21 @@ else:
 #                              unit_length=25,
 #                              unit_speed=5)
 
-env = AdvSpdEnvRoadMulti(src="rl_env/data/brt1001_signal_offset.xlsx",
-                         reward_coef=[args.coef_vel,
-                                      args.coef_shock,
-                                      args.coef_jerk,
-                                      args.coef_power,
-                                      args.coef_tt,
-                                      args.coef_signal,
-                                      args.coef_distance,
-                                      args.coef_actiongap],  # coef_signal_violation
-                         timelimit=args.max_episode_steps,
-                         unit_length=args.unit_length,
-                         unit_speed=args.unit_speed,
-                         action_dt=args.action_dt,
-                         stochastic=args.stochastic
-                         )
+env = AdvSpdEnvRoadMulti_SRC(src="rl_env/data/brt1001_signal_offset.csv",
+                             reward_coef=[args.coef_vel,
+                                          args.coef_shock,
+                                          args.coef_jerk,
+                                          args.coef_power,
+                                          args.coef_tt,
+                                          args.coef_signal,
+                                          args.coef_distance,
+                                          args.coef_actiongap],  # coef_signal_violation
+                             timelimit=args.max_episode_steps,
+                             unit_length=args.unit_length,
+                             unit_speed=args.unit_speed,
+                             action_dt=args.action_dt,
+                             stochastic=args.stochastic
+                             )
 
 env = gym.wrappers.TimeLimit(env, max_episode_steps=args.max_episode_steps)
 

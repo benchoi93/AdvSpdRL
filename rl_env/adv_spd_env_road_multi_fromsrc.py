@@ -57,7 +57,7 @@ class AdvSpdEnvRoadMulti_SRC(AdvSpdEnvRoadMulti):
         super(AdvSpdEnvRoadMulti_SRC, self).__init__(num_signal, num_action_unit, dt, action_dt, track_length, acc_max, acc_min,
                                                      speed_max, dec_th, stop_th, reward_coef, timelimit, unit_length, unit_speed, stochastic, min_location, max_location)
 
-        route_src = pd.read_excel(src)
+        route_src = pd.read_csv(src)
 
         offset_dict = dict()
         signal_dict = dict()
@@ -76,7 +76,9 @@ class AdvSpdEnvRoadMulti_SRC(AdvSpdEnvRoadMulti):
                 signal_dict[signal_idx] = {"location": running_distance,
                                            "signalGreen": int(route_src.iloc[i]['signalGreenPhaseLength']),
                                            "signalRed": int(route_src.iloc[i]['siganlRedPhaseLength']),
-                                           "signalOffset": int(route_src.iloc[i]['signalOffset'])
+                                           "signalOffset": int(route_src.iloc[i]['signalOffset']),
+                                           "signalGroup": int(route_src.iloc[i]['Unnamed: 18']),
+                                           "signalName": int(route_src.iloc[i]['Unnamed: 19'])
                                            }
                 signal_idx += 1
 
