@@ -137,5 +137,6 @@ simulate_gif/
 simulate_gif/
 *.gif
 simulate_gif_fromsrc/
+simulate_gif_fromsrc_nooffset/
 gifout/
 simulate_gif_1012/
