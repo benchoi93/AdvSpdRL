@@ -78,7 +78,7 @@ class AdvSpdEnvRoadMulti_SRC(AdvSpdEnvRoadMulti):
                                            "signalRed": int(route_src.iloc[i]['siganlRedPhaseLength']),
                                            "signalOffset": int(route_src.iloc[i]['signalOffset']),
                                            "signalGroup": int(route_src.iloc[i]['Unnamed: 18']),
-                                           "signalName": int(route_src.iloc[i]['Unnamed: 19'])
+                                           "signalName": str(route_src.iloc[i]['Unnamed: 19'])
                                            }
                 signal_idx += 1
 
