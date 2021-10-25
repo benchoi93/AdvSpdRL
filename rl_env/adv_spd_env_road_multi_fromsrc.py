@@ -3,7 +3,7 @@ from typing import DefaultDict
 import numpy as np
 import pandas as pd
 import os
-from rl_env.adv_spd_env_road_multi import Vehicle, TrafficSignal, SectionMaxSpeed, AdvSpdEnvRoadMulti
+from rl_env.adv_spd_env_road_multi import Vehicle, TrafficSignal, AdvSpdEnvRoadMulti
 
 
 class SectionMaxSpeed(object):
@@ -65,7 +65,7 @@ class AdvSpdEnvRoadMulti_SRC(AdvSpdEnvRoadMulti):
         # for i in range(route_src.shape[0]):
         running_distance = 0
         signal_idx = 0
-        for i in range(2, 274):
+        for i in range(len(route_src)):
             if not route_src.iloc[i]['linkSeq'] in offset_dict.keys():
                 offset_dict[route_src.iloc[i]['linkSeq']] = {"linkID": route_src.iloc[i]['linkID'],
                                                              "offset": {}}
@@ -74,9 +74,10 @@ class AdvSpdEnvRoadMulti_SRC(AdvSpdEnvRoadMulti):
             running_distance += route_src.iloc[i]['offsetEnd']/100-route_src.iloc[i]['offsetStart']/100
             if route_src.iloc[i]['existSignal']:
                 signal_dict[signal_idx] = {"location": running_distance,
-                                           "signalGreen": route_src.iloc[i]['signalGreenPhaseLength'],
-                                           "signalRed": route_src.iloc[i]['siganlRedPhaseLength'],
-                                           "signalOffset": route_src.iloc[i]['signalOffset']}
+                                           "signalGreen": int(route_src.iloc[i]['signalGreenPhaseLength']),
+                                           "signalRed": int(route_src.iloc[i]['siganlRedPhaseLength']),
+                                           "signalOffset": int(route_src.iloc[i]['signalOffset'])
+                                           }
                 signal_idx += 1
 
         self.offset_dict = offset_dict
@@ -141,7 +142,7 @@ class AdvSpdEnvRoadMulti_SRC(AdvSpdEnvRoadMulti):
             reward = self._get_reward()
             reward_with_coef = np.array(reward).dot(np.array(self.reward_coef))
             reward_list.append(reward)
-            
+
             cur_idx, _ = self.section.get_cur_idx(self.vehicle.position)
             try:
                 self.vehicle.veh_info[self.timestep][4] = reward_with_coef

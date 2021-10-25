@@ -24,7 +24,7 @@ i = 0
 #     for i in range(100):
 # try:
 # env: AdvSpdEnvRoadMulti_SRC = pickle.load(open(os.path.join('params', f'{modelname}{cuda}', 'env.pkl'), 'rb'))
-env = AdvSpdEnvRoadMulti_SRC(src="rl_env/data/route_offset_excel_210924.xlsx", timelimit=20000)
+env = AdvSpdEnvRoadMulti_SRC(src="rl_env/data/brt1001_signal_offset.xlsx", timelimit=20000)
 
 model = globals()[modelname]("MlpPolicy", env, verbose=1, device='cpu')
 # list_of_files = glob.glob(os.path.join('params', f'{modelname}{cuda}/best_model.zip'))
@@ -33,7 +33,7 @@ model = globals()[modelname]("MlpPolicy", env, verbose=1, device='cpu')
 
 path = Path(f'{outpath}/{modelname}{cuda}/')
 if not path.exists():
-    path.mkdir()
+    path.mkdir(parents=True)
 
 ob = env.reset()
 pickle.dump(env, open(f'{outpath}/{modelname}{cuda}/env_{i}.pkl', 'wb'))
