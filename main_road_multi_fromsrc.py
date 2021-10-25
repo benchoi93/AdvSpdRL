@@ -55,7 +55,7 @@ else:
 #                              unit_length=25,
 #                              unit_speed=5)
 
-env = AdvSpdEnvRoadMulti(src="rl_env/data/brt1001_signal_offset.xlsx"
+env = AdvSpdEnvRoadMulti(src="rl_env/data/brt1001_signal_offset.xlsx",
                          reward_coef=[args.coef_vel,
                                       args.coef_shock,
                                       args.coef_jerk,
