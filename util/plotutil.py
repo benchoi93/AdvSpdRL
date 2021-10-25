@@ -80,14 +80,16 @@ def info_graph(env_list, veh_info_list, check_finish=False, separate=True, path=
 
         # x-t with signal phase
         ax3.plot([x*env.dt for x in range(len(pos[i]))], pos[i], lw=2, color=color_list[i])
-        green = env.signal[0].phase_length[True]
-        red = env.signal[0].phase_length[False]
-        cycle = green+red
+        
         for j in range(env.num_signal):
+            offset = env.signal[j].offset
+            green = env.signal[j].phase_length[True]
+            red = env.signal[j].phase_length[False]
+            cycle = green+red
             for k in range(int(env.timelimit/10/cycle)+1):
-                ax3.plot(np.linspace(cycle*k-(cycle-env.signal[j].offset), cycle*k-(cycle-env.signal[j].offset)+green, green*10),
+                ax3.plot(np.linspace(cycle*k-(cycle-offset), cycle*k-(cycle-offset)+green, green*10),
                         [env.signal[j].location]*(green*10), lw=2, color='g')
-                ax3.plot(np.linspace(cycle*k-(cycle-env.signal[j].offset)+green, cycle*k-(cycle-env.signal[j].offset)+cycle, red*10),
+                ax3.plot(np.linspace(cycle*k-(cycle-offset)+green, cycle*k-(cycle-offset)+cycle, red*10),
                         [env.signal[j].location]*(red*10), lw=2, color='r')
         ax3.set_title('x-t graph')
         ax3.set_xlabel('Time in s')
@@ -186,14 +188,16 @@ def info_graph_separate(env_list, veh_info_list, path='./simulate_gif/info_graph
 
         # x-t with signal phase
         ax3.plot([x*env.dt for x in range(len(pos[i]))], pos[i], lw=2, color=color_list[i])
-        green = env.signal[0].phase_length[True]
-        red = env.signal[0].phase_length[False]
-        cycle = green+red
+
         for j in range(env.num_signal):
+            offset = env.signal[j].offset
+            green = env.signal[j].phase_length[True]
+            red = env.signal[j].phase_length[False]
+            cycle = green+red
             for k in range(int(env.timelimit/10/cycle)+1):
-                ax3.plot(np.linspace(cycle*k-(cycle-env.signal[j].offset), cycle*k-(cycle-env.signal[j].offset)+green, green*10),
+                ax3.plot(np.linspace(cycle*k-(cycle-offset), cycle*k-(cycle-offset)+green, green*10),
                         [env.signal[j].location]*(green*10), lw=2, color='g')
-                ax3.plot(np.linspace(cycle*k-(cycle-env.signal[j].offset)+green, cycle*k-(cycle-env.signal[j].offset)+cycle, red*10),
+                ax3.plot(np.linspace(cycle*k-(cycle-offset)+green, cycle*k-(cycle-offset)+cycle, red*10),
                         [env.signal[j].location]*(red*10), lw=2, color='r')
         ax3.set_title('x-t graph')
         ax3.set_xlabel('Time in s')
@@ -281,15 +285,19 @@ def info_graph_detail(env_list, veh_info_list, separate = True, path='./simulate
 
             # x-t with signal phase
             ax_list[i][0].plot([x*env.dt for x in range(len(pos[i]))], pos[i], lw=2, color=color_list[i])
-            green = env.signal[0].phase_length[True]
-            red = env.signal[0].phase_length[False]
-            cycle = green+red
+            
             for j in range(env.num_signal):
+                offset = env.signal[j].offset
+                green = env.signal[j].phase_length[True]
+                red = env.signal[j].phase_length[False]
+                cycle = green+red
                 for k in range(int(env.timelimit/10/cycle)+1):
-                    ax_list[i][0].plot(np.linspace(cycle*k-(cycle-env.signal[j].offset), cycle*k-(cycle-env.signal[j].offset)+green, green*10),
+                    ax_list[i][0].plot(np.linspace(cycle*k-(cycle-offset), cycle*k-(cycle-offset)+green, green*10),
                             [env.signal[j].location]*(green*10), lw=2, color='g')
-                    ax_list[i][0].plot(np.linspace(cycle*k-(cycle-env.signal[j].offset)+green, cycle*k-(cycle-env.signal[j].offset)+cycle, red*10),
+                    ax_list[i][0].plot(np.linspace(cycle*k-(cycle-offset)+green, cycle*k-(cycle-offset)+cycle, red*10),
                             [env.signal[j].location]*(red*10), lw=2, color='r')
+            
+            # for j in range(env.)
             ax_list[i][0].set_title('x-t graph')
             ax_list[i][0].set_xlabel('Time in s')
             ax_list[i][0].set_ylabel('Position in m')
@@ -362,14 +370,16 @@ def info_graph_detail(env_list, veh_info_list, separate = True, path='./simulate
 
             # x-t with signal phase
             ax_list[0].plot([x*env.dt for x in range(len(pos[i]))], pos[i], lw=2, color=color_list[i])
-            green = env.signal[0].phase_length[True]
-            red = env.signal[0].phase_length[False]
-            cycle = green+red
+
             for j in range(env.num_signal):
+                offset = env.signal[j].offset
+                green = env.signal[j].phase_length[True]
+                red = env.signal[j].phase_length[False]
+                cycle = green+red
                 for k in range(int(env.timelimit/10/cycle)+1):
-                    ax_list[0].plot(np.linspace(cycle*k-(cycle-env.signal[j].offset), cycle*k-(cycle-env.signal[j].offset)+green, green*10),
+                    ax_list[0].plot(np.linspace(cycle*k-(cycle-offset), cycle*k-(cycle-offset)+green, green*10),
                             [env.signal[j].location]*(green*10), lw=2, color='g')
-                    ax_list[0].plot(np.linspace(cycle*k-(cycle-env.signal[j].offset)+green, cycle*k-(cycle-env.signal[j].offset)+cycle, red*10),
+                    ax_list[0].plot(np.linspace(cycle*k-(cycle-offset)+green, cycle*k-(cycle-offset)+cycle, red*10),
                             [env.signal[j].location]*(red*10), lw=2, color='r')
             ax_list[0].set_title('x-t graph')
             ax_list[0].set_xlabel('Time in s')
