@@ -23,7 +23,7 @@ i = 0
 #     for i in range(100):
 # try:
 env: AdvSpdEnvRoadMulti_SRC = pickle.load(open(os.path.join('params', f'{modelname}{cuda}', 'env.pkl'), 'rb'))
-env = AdvSpdEnvRoadMulti_SRC(src="rl_env/data/brt1001_signal_offset.xlsx", timelimit=20000,
+env = AdvSpdEnvRoadMulti_SRC(src="rl_env/data/brt1001_signal_offset.csv", timelimit=20000,
                              reward_coef=[1, 1, 1, 1, 0, 0, 0, 0],
                              unit_length=25,
                              unit_speed=5)
@@ -47,6 +47,7 @@ cnt = 0
 print("-------------------------------------")
 while not episode_over:
     action = env.get_random_action()
+    # action, _ = model.predict(ob)
     # print(f"{cnt=} || {action=}")
     cnt += 1
     ob, reward, episode_over, info = env.step(action)

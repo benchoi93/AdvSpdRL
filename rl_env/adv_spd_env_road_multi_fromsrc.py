@@ -33,7 +33,7 @@ class SectionMaxSpeed(object):
         self.sms_list = [[0, self.section_max_speed]]
 
         if set_local_speed_limit:
-            for i in range(self.num_section + 1):
+            for i in range(self.num_section):
                 self.section_max_speed[i] = max_speed[i]/3.6
 
     def get_cur_idx(self, x):
@@ -156,8 +156,11 @@ class AdvSpdEnvRoadMulti_SRC(AdvSpdEnvRoadMulti):
             cur_idx, _ = self.section.get_cur_idx(self.vehicle.position)
             try:
                 self.vehicle.veh_info[self.timestep][4] = reward_with_coef
-                self.section.sms_list.append([self.timestep/10, self.section.section_max_speed])
-                self.vehicle.veh_info[self.timestep][5] = self.section.section_max_speed[math.floor(self.vehicle.position/self.unit_length)]
+                # self.section.sms_list.append([self.timestep/10, self.section.section_max_speed])
+                self.section.sms_list.append(
+                    [self.timestep/10, np.min(np.stack([self.section.section_max_speed, self.section_input.section_max_speed]), 0)])
+                self.vehicle.veh_info[self.timestep][5] = min(self.section.section_max_speed[math.floor(
+                    self.vehicle.position/self.unit_length)], self.section_input.section_max_speed[math.floor(self.vehicle.position/self.unit_length)])
             except:
                 # print(self.timestep)
                 break

@@ -688,7 +688,10 @@ class AdvSpdEnvRoadMulti(gym.Env):
         # signal off leader position = inf
         import math
         des_speed = self.section.get_cur_max_speed(position)
-        next_des_speed = self.section.get_next_max_speed(position)
+        des_speed_input = self.section_input.get_cur_max_speed(position)
+        des_speed = min(des_speed, des_speed_input)
+
+        # next_des_speed = self.section.get_next_max_speed(position)
         delta = 4
         a = self.acc_max
         b = self.acc_min
@@ -704,12 +707,12 @@ class AdvSpdEnvRoadMulti(gym.Env):
         relative_speed = (velocity-0)
         spacing = leader_position - position
 
-        sstar_next = s_0 + velocity * des_timeheadway + velocity * (velocity - next_des_speed) / (2 * math.sqrt(abs(a * b)))
+        # sstar_next = s_0 + velocity * des_timeheadway + velocity * (velocity - next_des_speed) / (2 * math.sqrt(abs(a * b)))
         # sstar_next = s_0 + velocity * des_timeheadway + velocity * (velocity - des_speed) / (2 * math.sqrt(abs(a * b)))
-        dist_to_next = self.section.get_distance_to_next_section(position)
+        # dist_to_next = self.section.get_distance_to_next_section(position)
 
-        if dist_to_next < sstar_next:
-            des_speed = next_des_speed
+        # if dist_to_next < sstar_next:
+        #     des_speed = next_des_speed
 
         des_distance = s_0 + velocity * des_timeheadway + velocity * relative_speed / (2 * math.sqrt(abs(a * b)))
         acceleration = a * (1 - (velocity/des_speed)**delta - (des_distance/spacing)**2)
