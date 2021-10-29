@@ -188,8 +188,8 @@ class AdvSpdEnvRoadMulti(gym.Env):
                                self.timelimit*2  # green time end
                                ])
 
-        self.observation_space = spaces.Box(low=np.zeros(9),
-                                            high=np.ones(9))
+        self.observation_space = spaces.Box(low=np.zeros(11),
+                                            high=np.ones(11))
 
         try:
             self.reset()
@@ -282,6 +282,8 @@ class AdvSpdEnvRoadMulti(gym.Env):
                       self.vehicle.acceleration / (self.acc_max - self.acc_min),
                       self.section.get_cur_max_speed(self.vehicle.position) / (self.speed_max * 2),
                       self.section.get_next_max_speed(self.vehicle.position) / (self.speed_max * 2),
+                      self.section_input.get_cur_max_speed(self.vehicle.position) / (self.speed_max * 2),
+                      self.section_input.get_next_max_speed(self.vehicle.position) / (self.speed_max * 2),
                       self.section.get_distance_to_next_section(self.vehicle.position) / self.unit_length,
                       sig.location/self.track_length,
                       (sig.get_greentime(int(self.timestep*self.dt))[0] - int(self.timestep*self.dt)) / (sig.cycle_length),

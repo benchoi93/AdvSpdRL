@@ -7,7 +7,7 @@ from rl_env.adv_spd_env_road_multi import Vehicle, TrafficSignal, AdvSpdEnvRoadM
 
 
 class SectionMaxSpeed(object):
-    def __init__(self, offset_info, track_length, min_speed=30, max_speed=50):
+    def __init__(self, offset_info, track_length, min_speed=30, max_speed=50, set_local_speed_limit=False):
         self.track_length = track_length
         self.min_speed = min_speed/3.6
         self.max_speed = max_speed/3.6
@@ -17,10 +17,12 @@ class SectionMaxSpeed(object):
         running_length = 0
         offset_starts = []
         offset_ends = []
+        max_speed = []
         for i in range(len(temp)):
             for offset in temp[i].values():
                 offset_starts.append(np.round(offset['start']+running_length, 3))
                 offset_ends.append(np.round(offset['end']+running_length, 3))
+                max_speed.append(offset['maxSpeed'])
             running_length += offset['end']
 
         self.offset_starts = offset_starts
@@ -29,6 +31,10 @@ class SectionMaxSpeed(object):
         self.num_section = len(offset_starts)
         self.section_max_speed = np.ones(shape=(self.num_section+1,)) * self.max_speed
         self.sms_list = [[0, self.section_max_speed]]
+
+        if set_local_speed_limit:
+            for i in range(self.num_section + 1):
+                self.section_max_speed[i] = max_speed[i]/3.6
 
     def get_cur_idx(self, x):
         for i, x_i in enumerate(self.offset_starts):
@@ -103,7 +109,7 @@ class AdvSpdEnvRoadMulti_SRC(AdvSpdEnvRoadMulti):
             self.signal.append(new_signal)
 
         self.section = SectionMaxSpeed(self.offset_dict, self.track_length, max_speed=self.speed_max*3.6)
-        self.section_input = SectionMaxSpeed(self.offset_dict, self.track_length, max_speed=self.speed_max*3.6)
+        self.section_input = SectionMaxSpeed(self.offset_dict, self.track_length, max_speed=self.speed_max*3.6, set_local_speed_limit=True)
         # self.section_input.section_max_speed
 
         self.timestep = 0
