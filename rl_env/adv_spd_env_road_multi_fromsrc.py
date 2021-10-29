@@ -70,15 +70,17 @@ class AdvSpdEnvRoadMulti_SRC(AdvSpdEnvRoadMulti):
                 offset_dict[route_src.iloc[i]['linkSeq']] = {"linkID": route_src.iloc[i]['linkID'],
                                                              "offset": {}}
             offset_dict[route_src.iloc[i]['linkSeq']]['offset'][route_src.iloc[i]['offsetSeq']] = {"start": route_src.iloc[i]['offsetStart']/100,
-                                                                                                   "end": route_src.iloc[i]['offsetEnd']/100}
+                                                                                                   "end": route_src.iloc[i]['offsetEnd']/100,
+                                                                                                   "maxSpeed": float(route_src.iloc[i]['MaxSpeed'])}
             running_distance += route_src.iloc[i]['offsetEnd']/100-route_src.iloc[i]['offsetStart']/100
             if route_src.iloc[i]['existSignal']:
                 signal_dict[signal_idx] = {"location": running_distance,
                                            "signalGreen": int(route_src.iloc[i]['signalGreenPhaseLength']),
                                            "signalRed": int(route_src.iloc[i]['siganlRedPhaseLength']),
                                            "signalOffset": int(route_src.iloc[i]['signalOffset']),
-                                           "signalGroup": int(route_src.iloc[i]['Unnamed: 18']),
-                                           "signalName": str(route_src.iloc[i]['Unnamed: 19'])
+                                           "signalGroup": int(route_src.iloc[i]['SignalGroup']),
+                                           "signalNumber": int(route_src.iloc[i]['SignalNumber']),
+                                           "signalName": str(route_src.iloc[i]['SignalName'])
                                            }
                 signal_idx += 1
 
