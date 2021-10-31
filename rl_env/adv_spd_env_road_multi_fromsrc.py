@@ -100,7 +100,7 @@ class AdvSpdEnvRoadMulti_SRC(AdvSpdEnvRoadMulti):
     def reset(self):
         self.vehicle = Vehicle(timelimit=self.timelimit)
 
-        rand_offset = np.random.randint(0, min([x.cycle_length for x in self.signal]))
+        rand_offset = np.random.randint(0, min([self.signal_dict[x]['signalGreen']+self.signal_dict[x]['signalRed'] for x in self.signal_dict]))
 
         self.signal = []
         for signal_i in self.signal_dict.values():
