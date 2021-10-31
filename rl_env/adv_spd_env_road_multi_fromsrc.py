@@ -100,12 +100,14 @@ class AdvSpdEnvRoadMulti_SRC(AdvSpdEnvRoadMulti):
     def reset(self):
         self.vehicle = Vehicle(timelimit=self.timelimit)
 
+        rand_offset = np.random.randint(0, min([x.cycle_length for x in self.signal]))
+
         self.signal = []
         for signal_i in self.signal_dict.values():
             new_signal = TrafficSignal(location=signal_i['location'],
                                        red_time=signal_i['signalRed'],
                                        green_time=signal_i['signalGreen'],
-                                       offset=signal_i['signalOffset'])
+                                       offset=signal_i['signalOffset'] + rand_offset)
             self.signal.append(new_signal)
 
         self.section = SectionMaxSpeed(self.offset_dict, self.track_length, max_speed=self.speed_max*3.6)
