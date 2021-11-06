@@ -135,7 +135,7 @@ class TrafficSignal(object):
 
 class AdvSpdEnvRoadMulti(gym.Env):
     def __init__(self, num_signal, num_action_unit, dt=0.1, action_dt=5, track_length=1500.0, acc_max=2, acc_min=-3,
-                 speed_max=50.0/3.6, dec_th=-3, stop_th=2, reward_coef=[1, 10, 1, 0.01, 0, 1, 1, 1],
+                 speed_max=50.0/3.6, speed_min=0, dec_th=-3, stop_th=2, reward_coef=[1, 10, 1, 0.01, 0, 1, 1, 1],
                  timelimit=7500, unit_length=100, unit_speed=10, stochastic=False, min_location=250, max_location=350):
 
         super(AdvSpdEnvRoadMulti, self).__init__()
@@ -152,6 +152,7 @@ class AdvSpdEnvRoadMulti(gym.Env):
         self.acc_min = acc_min
         self.acc_max = acc_max
         self.speed_max = speed_max
+        self.speed_min = speed_min
         self.dec_th = dec_th
         self.stop_th = stop_th
         self.reward_coef = reward_coef
@@ -165,7 +166,7 @@ class AdvSpdEnvRoadMulti(gym.Env):
 
         # self.action_space = spaces.Tuple(([spaces.Discrete(int(speed_max * 3.6 / unit_speed) + 1) for i in range(int(track_length/unit_length)+1)]))
         # self.action_space = spaces.MultiDiscrete([int(speed_max*2 * 3.6 / unit_speed)] * self.num_action_unit)
-        self.action_space = spaces.Discrete(int(speed_max*2 * 3.6/unit_speed))
+        self.action_space = spaces.Discrete(int((speed_max-speed_min) * 3.6/unit_speed) + 1)
 
         min_states = np.array([0.0,  # position
                                0.0,  # velocity
@@ -534,7 +535,7 @@ class AdvSpdEnvRoadMulti(gym.Env):
     #     return acceleration
 
     def _take_action(self, action):
-        applied_action = (action + 1) * self.unit_speed
+        applied_action = (action) * self.unit_speed + self.speed_min*3.6
 
         cur_idx = int(self.vehicle.position/self.unit_length) + 1
         # num_action_in = (min(cur_idx+self.num_action_unit, len(self.section.section_max_speed)-1)) - cur_idx
@@ -630,21 +631,26 @@ class AdvSpdEnvRoadMulti(gym.Env):
         return reward_list
 
     def _get_reward(self):
-        max_speed = self.section.get_cur_max_speed(self.vehicle.position)
+        max_speed = min(self.section.get_cur_max_speed(self.vehicle.position), self.section_input.get_cur_max_speed(self.vehicle.position))
         reward_norm_velocity1 = np.abs((self.vehicle.velocity) - max_speed)
         reward_norm_velocity1 /= self.speed_max
+        reward_norm_velocity = reward_norm_velocity1
 
-        max_speed = self.section_input.get_cur_max_speed(self.vehicle.position)
-        reward_norm_velocity2 = np.abs((self.vehicle.velocity) - max_speed)
-        reward_norm_velocity2 /= self.speed_max
+        # max_speed = self.section_input.get_cur_max_speed(self.vehicle.position)
+        # reward_norm_velocity2 = np.abs((self.vehicle.velocity) - max_speed)
+        # reward_norm_velocity2 /= self.speed_max
 
-        reward_norm_velocity = (reward_norm_velocity1 + reward_norm_velocity2)/2
+        # reward_norm_velocity = (reward_norm_velocity1 + reward_norm_velocity2)/2
 
         # reward_jerk = np.abs(self.vehicle.jerk)
         # jerk_max = (self.acc_max - self.acc_min) / self.dt
         # reward_jerk /= jerk_max
-        reward_jerk = (self.vehicle.acceleration)**2
-        reward_jerk /= max(self.acc_min**2, self.acc_max**2)
+        reward_jerk = 0
+        if max_speed > self.vehicle.velocity:
+            if self.vehicle.acceleration < 0:
+                reward_jerk = (self.vehicle.acceleration)**2
+                # reward_jerk /= max(self.acc_min**2, self.acc_max**2)
+                reward_jerk /= self.acc_min**2
 
         reward_shock = 0
 
@@ -653,7 +659,7 @@ class AdvSpdEnvRoadMulti(gym.Env):
         if self.vehicle.velocity > self.speed_max:
             reward_shock += 1
 
-        penalty_signal_violation = 1 if self.violation else 0
+        reward_signal = 1 if self.violation else 0
         # penalty_action_limit = self.vehicle.action_limit_penalty if self.vehicle.action_limit_penalty != 1 else 0
         # penalty_moving_backward = 1000 if self.vehicle.velocity < 0 else 0
         penalty_travel_time = 1
@@ -675,7 +681,14 @@ class AdvSpdEnvRoadMulti(gym.Env):
         # power = -self.energy_consumption()
         # reward_power = self.vehicle.velocity / power if (power > 0 and self.vehicle.velocity >= 0) else 0
 
-        return [-reward_norm_velocity, -reward_shock, -reward_jerk, -reward_power, -penalty_travel_time, -penalty_signal_violation, -reward_remaining_distance, -reward_action_gap]
+        return [-reward_norm_velocity,
+                -reward_shock,
+                -reward_jerk,
+                -reward_power,
+                -penalty_travel_time,
+                -reward_signal,
+                -reward_remaining_distance,
+                -reward_action_gap]
         # return -reward_norm_velocity - \
         #     reward_shock - \
         #     reward_jerk - \

@@ -57,11 +57,11 @@ class SectionMaxSpeed(object):
 
 class AdvSpdEnvRoadMulti_SRC(AdvSpdEnvRoadMulti):
     def __init__(self, src, num_signal=5, num_action_unit=3, dt=0.1, action_dt=5, track_length=1500.0, acc_max=2, acc_min=-3,
-                 speed_max=50.0/3.6, dec_th=-3, stop_th=2, reward_coef=[1, 10, 1, 0.01, 0, 1, 1, 1],
+                 speed_max=50.0/3.6, speed_min=0, dec_th=-3, stop_th=2, reward_coef=[1, 10, 1, 0.01, 0, 1, 1, 1],
                  timelimit=7500, unit_length=100, unit_speed=10, stochastic=False, min_location=250, max_location=350):
 
         super(AdvSpdEnvRoadMulti_SRC, self).__init__(num_signal, num_action_unit, dt, action_dt, track_length, acc_max, acc_min,
-                                                     speed_max, dec_th, stop_th, reward_coef, timelimit, unit_length, unit_speed, stochastic, min_location, max_location)
+                                                     speed_max, speed_min, dec_th, stop_th, reward_coef, timelimit, unit_length, unit_speed, stochastic, min_location, max_location)
 
         route_src = pd.read_csv(src)
 
@@ -129,7 +129,8 @@ class AdvSpdEnvRoadMulti_SRC(AdvSpdEnvRoadMulti):
         return self.state
 
     def _take_action(self, action):
-        applied_action = (action + 1) * self.unit_speed / 3.6
+        # applied_action = (action + 1) * self.unit_speed / 3.6
+        applied_action = (action) * self.unit_speed + self.speed_min*3.6
 
         cur_idx, _ = self.section.get_cur_idx(self.vehicle.position)
         if cur_idx > 0:
@@ -160,10 +161,27 @@ class AdvSpdEnvRoadMulti_SRC(AdvSpdEnvRoadMulti):
             if self.vehicle.velocity + acceleration * self.dt < 0:
                 acceleration = - self.vehicle.velocity / self.dt
 
+            prev_position = self.vehicle.position
+            sig = self._get_signal()
+
             self.vehicle.update(acceleration, self.timestep, self.dt)
             cur_position = self.vehicle.position
 
+            pass_sig_reward = 0
+            if sig is not None:
+                if sig.location > prev_position:
+                    if sig.location < cur_position:
+                        pass_sig_reward = 1
+
             reward = self._get_reward()
+            reward[5] += pass_sig_reward
+
+            # max_speed = self.section.get_cur_max_speed(self.vehicle.position)
+            # reward_norm_velocity1 = np.abs((self.vehicle.velocity) - max_speed)
+            # reward_norm_velocity1 /= self.speed_max
+
+            # reward[0] +=
+
             reward_with_coef = np.array(reward).dot(np.array(self.reward_coef))
             reward_list.append(reward)
 
