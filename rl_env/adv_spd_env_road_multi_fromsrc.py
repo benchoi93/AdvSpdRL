@@ -64,6 +64,7 @@ class AdvSpdEnvRoadMulti_SRC(AdvSpdEnvRoadMulti):
                                                      speed_max, speed_min, dec_th, stop_th, reward_coef, timelimit, unit_length, unit_speed, stochastic, min_location, max_location)
 
         route_src = pd.read_csv(src)
+        route_src = route_src.loc[:83]  # Limit to 2 signals in Sejong
 
         offset_dict = dict()
         signal_dict = dict()
