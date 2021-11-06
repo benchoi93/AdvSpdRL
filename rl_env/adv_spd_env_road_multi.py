@@ -13,7 +13,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 
 class Vehicle(object):
-    def __init__(self, initial_speed=40/3.6, timelimit=7500, num_states=6):
+    def __init__(self, initial_speed=45/3.6, timelimit=7500, num_states=6):
         # init_max_speed = 50 / 3.6
         self.position = 0
         # self.velocity = np.random.rand() * init_max_speed
