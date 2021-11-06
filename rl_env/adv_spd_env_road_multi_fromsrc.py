@@ -171,7 +171,7 @@ class AdvSpdEnvRoadMulti_SRC(AdvSpdEnvRoadMulti):
             if sig is not None:
                 if sig.location > prev_position:
                     if sig.location < cur_position:
-                        pass_sig_reward = 1
+                        pass_sig_reward = self.vehicle.velocity / self.max_speed
 
             reward = self._get_reward()
             reward[5] += pass_sig_reward
