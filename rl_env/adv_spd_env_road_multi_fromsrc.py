@@ -141,10 +141,10 @@ class AdvSpdEnvRoadMulti_SRC(AdvSpdEnvRoadMulti):
         if cur_idx > 0:
             prev_speed = min(self.section.section_max_speed[cur_idx-1], self.section_input.section_max_speed[cur_idx-1])
             if np.abs(applied_action/3.6 - prev_speed) > (self.unit_speed/3.6*2):
-                if applied_action > prev_speed + self.unit_speed/3.6*2:
-                    applied_action = prev_speed + self.unit_speed/3.6*2
-                elif applied_action < prev_speed - self.unit_speed/3.6*2:
-                    applied_action = prev_speed - self.unit_speed/3.6*2
+                if applied_action/3.6 > prev_speed + self.unit_speed/3.6*2:
+                    applied_action = prev_speed*3.6 + self.unit_speed*2
+                elif applied_action/3.6 < prev_speed - self.unit_speed/3.6*2:
+                    applied_action = prev_speed*3.6 - self.unit_speed*2
                 else:
                     applied_action = applied_action
 
