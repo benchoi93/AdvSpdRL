@@ -98,17 +98,21 @@ class AdvSpdEnvRoadMulti_SRC(AdvSpdEnvRoadMulti):
 
         self.reset()
 
-    def reset(self):
-        self.vehicle = Vehicle(timelimit=self.timelimit, initial_speed=30/3.6)
+    def reset(self, initial_position=0, initial_speed=30/3.6, rand_offset=True, signal_offset=0):
+        self.vehicle = Vehicle(timelimit=self.timelimit, initial_speed=initial_speed, initial_position=initial_position,)
 
-        rand_offset = np.random.randint(0, min([self.signal_dict[x]['signalGreen']+self.signal_dict[x]['signalRed'] for x in self.signal_dict]))
+        if rand_offset:
+            offset_inc = np.random.randint(
+                0, min([self.signal_dict[x]['signalGreen']+self.signal_dict[x]['signalRed'] for x in self.signal_dict]))
+        else:
+            offset_inc = signal_offset
 
         self.signal = []
         for signal_i in self.signal_dict.values():
             new_signal = TrafficSignal(location=signal_i['location'],
                                        red_time=signal_i['signalRed'],
                                        green_time=signal_i['signalGreen'],
-                                       offset=signal_i['signalOffset'] + rand_offset)
+                                       offset=signal_i['signalOffset'] + offset_inc)
             self.signal.append(new_signal)
 
         self.section = SectionMaxSpeed(self.offset_dict, self.track_length, max_speed=self.speed_max*3.6)
@@ -136,7 +140,7 @@ class AdvSpdEnvRoadMulti_SRC(AdvSpdEnvRoadMulti):
         cur_idx, _ = self.section.get_cur_idx(self.vehicle.position)
         if cur_idx > 0:
             prev_speed = min(self.section.section_max_speed[cur_idx-1], self.section_input.section_max_speed[cur_idx-1])
-            if np.abs(applied_action - prev_speed) > (self.unit_speed/3.6*2):
+            if np.abs(applied_action/3.6 - prev_speed) > (self.unit_speed/3.6*2):
                 if applied_action > prev_speed + self.unit_speed/3.6*2:
                     applied_action = prev_speed + self.unit_speed/3.6*2
                 elif applied_action < prev_speed - self.unit_speed/3.6*2:

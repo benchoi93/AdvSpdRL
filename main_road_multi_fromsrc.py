@@ -1,4 +1,4 @@
-
+from pathlib import Path
 import gym
 import os
 from stable_baselines3.common.monitor import Monitor
@@ -79,8 +79,9 @@ env = gym.wrappers.TimeLimit(env, max_episode_steps=args.max_episode_steps)
 
 modelname = args.model
 directory = f'params/{modelname}{int(cuda)}'
-if not os.path.exists(directory):
-    os.mkdir(directory)
+Path(directory).mkdir(parents=True, exist_ok=True)
+# if not os.path.exists(directory):
+#     os.mkdir(directory)
 
 env = Monitor(env, f"./params/{modelname}{int(cuda)}/")
 checkpoint_callback = CheckpointCallback(save_freq=10000, save_path=f"./params/{modelname}{int(cuda)}", name_prefix=f"AdvSpdRL_{modelname}")
