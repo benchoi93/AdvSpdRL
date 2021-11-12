@@ -69,8 +69,10 @@ env = AdvSpdEnvRoadMulti_SRC(src="rl_env/data/brt1001_signal_offset.csv",
                              unit_speed=args.unit_speed,
                              action_dt=args.action_dt,
                              stochastic=args.stochastic,
-                             speed_max=50.0/3.6, 
-                             speed_min=15.0/3.6
+                             speed_max=40.0/3.6,
+                             speed_min=15.0/3.6,
+                             acc_max=1.4,
+                             acc_min=1.1
                              )
 
 env = gym.wrappers.TimeLimit(env, max_episode_steps=args.max_episode_steps)
