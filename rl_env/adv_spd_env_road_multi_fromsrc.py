@@ -139,16 +139,16 @@ class AdvSpdEnvRoadMulti_SRC(AdvSpdEnvRoadMulti):
 
     def _take_action(self, action):
         # applied_action = (action + 1) * self.unit_speed / 3.6
-        applied_action = (action) * self.unit_speed + self.speed_min*3.6
+        applied_action = ((action) * self.unit_speed + self.speed_min*3.6)/3.6
 
         cur_idx, _ = self.section.get_cur_idx(self.vehicle.position)
         if cur_idx > 0:
             prev_speed = min(self.section.section_max_speed[cur_idx-1], self.section_input.section_max_speed[cur_idx-1])
-            if np.abs(applied_action/3.6 - prev_speed) > (self.unit_speed/3.6*2):
-                if applied_action/3.6 > prev_speed + self.unit_speed/3.6*2:
-                    applied_action = prev_speed*3.6 + self.unit_speed*2
-                elif applied_action/3.6 < prev_speed - self.unit_speed/3.6*2:
-                    applied_action = prev_speed*3.6 - self.unit_speed*2
+            if np.abs(applied_action - prev_speed) > (self.unit_speed/3.6*2):
+                if applied_action > prev_speed + self.unit_speed/3.6*2:
+                    applied_action = prev_speed + self.unit_speed/3.6*2
+                elif applied_action < prev_speed - self.unit_speed/3.6*2:
+                    applied_action = prev_speed - self.unit_speed/3.6*2
                 else:
                     applied_action = applied_action
 
