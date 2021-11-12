@@ -60,6 +60,10 @@ class AdvSpdEnvRoadMulti_SRC(AdvSpdEnvRoadMulti):
                  speed_max=50.0/3.6, speed_min=0, dec_th=-3, stop_th=2, reward_coef=[1, 10, 1, 0.01, 0, 1, 1, 1],
                  timelimit=7500, unit_length=100, unit_speed=10, stochastic=False, min_location=250, max_location=350):
 
+        assert(acc_max >= 0)
+        assert(acc_min <= 0)
+        assert(speed_max > 0)
+
         super(AdvSpdEnvRoadMulti_SRC, self).__init__(num_signal, num_action_unit, dt, action_dt, track_length, acc_max, acc_min,
                                                      speed_max, speed_min, dec_th, stop_th, reward_coef, timelimit, unit_length, unit_speed, stochastic, min_location, max_location)
 
