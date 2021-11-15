@@ -14,10 +14,10 @@ import argparse
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 parser = argparse.ArgumentParser(description='Train or test neural net motor controller')
-parser.add_argument('--cuda', default='1')
+parser.add_argument('--cuda', default='0')
 args = parser.parse_args()
 
-outpath = 'simulate_gif_fromsrc'
+outpath = 'simulate_gif_fromsrc1115'
 modelname = 'PPO'
 cuda = args.cuda
 i = 0
@@ -27,11 +27,11 @@ i = 0
 #     cuda = str(cuda)
 for i in range(100):
     # try:
-    # env: AdvSpdEnvRoadMulti_SRC = pickle.load(open(os.path.join('params', f'{modelname}{cuda}', 'env.pkl'), 'rb'))
-    env = AdvSpdEnvRoadMulti_SRC(src="rl_env/data/brt1001_signal_offset.csv", timelimit=20000,
-                                 reward_coef=[1, 1, 1, 1, 0, 0, 0, 0],
-                                 unit_length=25,
-                                 unit_speed=5)
+    env: AdvSpdEnvRoadMulti_SRC = pickle.load(open(os.path.join('params', f'{modelname}{cuda}', 'env.pkl'), 'rb'))
+    # env = AdvSpdEnvRoadMulti_SRC(src="rl_env/data/brt1001_signal_offset.csv", timelimit=20000,
+    #                              reward_coef=[1, 1, 1, 1, 0, 0, 0, 0],
+    #                              unit_length=25,
+    #                              unit_speed=5)
 
     model = globals()[modelname]("MlpPolicy", env, verbose=1, device='cpu')
     # list_of_files = glob.glob(os.path.join('params', f'{modelname}{cuda}/best_model.zip'))

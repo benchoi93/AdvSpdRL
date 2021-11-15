@@ -190,7 +190,7 @@ class AdvSpdEnvRoadMulti_SRC(AdvSpdEnvRoadMulti):
             reward_action_gap = np.abs(next_des_speed - cur_des_speed)
             #  / (self.action_space.n * self.unit_speed/2 / 3.6)
             reward_action_gap = (reward_action_gap) ** 2
-            reward[7] = reward_action_gap
+            reward[7] = -reward_action_gap
 
             # max_speed = self.section.get_cur_max_speed(self.vehicle.position)
             # reward_norm_velocity1 = np.abs((self.vehicle.velocity) - max_speed)
