@@ -159,6 +159,7 @@ class AdvSpdEnvRoadMulti_SRC(AdvSpdEnvRoadMulti):
         cur_idx_old = int(cur_idx)
         reward_list = []
 
+        cnt = 0
         while cur_idx == cur_idx_old:
             self.timestep += 1
 
@@ -185,12 +186,15 @@ class AdvSpdEnvRoadMulti_SRC(AdvSpdEnvRoadMulti):
             reward = self._get_reward()
             reward[5] += pass_sig_reward
 
-            # next_des_speed = self.section.get_next_max_speed(self.vehicle.position)
-            # cur_des_speed = self.section.get_cur_max_speed(self.vehicle.position)
-            # reward_action_gap = np.abs(next_des_speed - cur_des_speed)
-            # #  / (self.action_space.n * self.unit_speed/2 / 3.6)
-            # reward_action_gap = (reward_action_gap) ** 2
-            # reward[7] = -reward_action_gap
+            if cnt == 0:
+                next_des_speed = self.section.get_next_max_speed(self.vehicle.position)
+                cur_des_speed = self.section.get_cur_max_speed(self.vehicle.position)
+                reward_action_gap = np.abs(next_des_speed - cur_des_speed)
+                #  / (self.action_space.n * self.unit_speed/2 / 3.6)
+                reward_action_gap = (reward_action_gap) ** 2
+                reward[7] = -reward_action_gap
+            else:
+                reward[7] = 0
 
             # max_speed = self.section.get_cur_max_speed(self.vehicle.position)
             # reward_norm_velocity1 = np.abs((self.vehicle.velocity) - max_speed)
