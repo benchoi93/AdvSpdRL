@@ -142,17 +142,17 @@ class AdvSpdEnvRoadMulti_SRC(AdvSpdEnvRoadMulti):
         applied_action = ((action) * self.unit_speed + self.speed_min*3.6)/3.6
 
         cur_idx, _ = self.section.get_cur_idx(self.vehicle.position)
-        if cur_idx > 0:
-            prev_speed = min(self.section.section_max_speed[cur_idx-1], self.section_input.section_max_speed[cur_idx-1])
-            if np.abs(applied_action - prev_speed) > (self.unit_speed/3.6*2):
-                if applied_action > prev_speed + self.unit_speed/3.6*2:
-                    applied_action = prev_speed + self.unit_speed/3.6*2
-                elif applied_action < prev_speed - self.unit_speed/3.6*2:
-                    applied_action = prev_speed - self.unit_speed/3.6*2
-                else:
-                    applied_action = applied_action
+        # if cur_idx > 0:
+        #     prev_speed = min(self.section.section_max_speed[cur_idx-1], self.section_input.section_max_speed[cur_idx-1])
+        #     if np.abs(applied_action - prev_speed) > (self.unit_speed/3.6*2):
+        #         if applied_action > prev_speed + self.unit_speed/3.6*2:
+        #             applied_action = prev_speed + self.unit_speed/3.6*2
+        #         elif applied_action < prev_speed - self.unit_speed/3.6*2:
+        #             applied_action = prev_speed - self.unit_speed/3.6*2
+        #         else:
+        #             applied_action = applied_action
 
-                # applied_action = max(prev_speed - self.unit_speed/3.6*2, min(prev_speed + self.unit_speed/3.6*2, applied_action))
+        # applied_action = max(prev_speed - self.unit_speed/3.6*2, min(prev_speed + self.unit_speed/3.6*2, applied_action))
 
         self.section.section_max_speed[cur_idx] = applied_action
 
@@ -185,12 +185,12 @@ class AdvSpdEnvRoadMulti_SRC(AdvSpdEnvRoadMulti):
             reward = self._get_reward()
             reward[5] += pass_sig_reward
 
-            next_des_speed = self.section.get_next_max_speed(self.vehicle.position)
-            cur_des_speed = self.section.get_cur_max_speed(self.vehicle.position)
-            reward_action_gap = np.abs(next_des_speed - cur_des_speed)
-            #  / (self.action_space.n * self.unit_speed/2 / 3.6)
-            reward_action_gap = (reward_action_gap) ** 2
-            reward[7] = -reward_action_gap
+            # next_des_speed = self.section.get_next_max_speed(self.vehicle.position)
+            # cur_des_speed = self.section.get_cur_max_speed(self.vehicle.position)
+            # reward_action_gap = np.abs(next_des_speed - cur_des_speed)
+            # #  / (self.action_space.n * self.unit_speed/2 / 3.6)
+            # reward_action_gap = (reward_action_gap) ** 2
+            # reward[7] = -reward_action_gap
 
             # max_speed = self.section.get_cur_max_speed(self.vehicle.position)
             # reward_norm_velocity1 = np.abs((self.vehicle.velocity) - max_speed)
