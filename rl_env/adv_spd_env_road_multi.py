@@ -646,11 +646,11 @@ class AdvSpdEnvRoadMulti(gym.Env):
         # jerk_max = (self.acc_max - self.acc_min) / self.dt
         # reward_jerk /= jerk_max
         reward_jerk = 0
-        if max_speed > self.vehicle.velocity:
-            if self.vehicle.acceleration < 0:
-                reward_jerk = (self.vehicle.acceleration)**2
-                # reward_jerk /= max(self.acc_min**2, self.acc_max**2)
-                reward_jerk /= self.acc_min**2
+        # if max_speed > self.vehicle.velocity:
+        if self.vehicle.acceleration < 0:
+            reward_jerk = (self.vehicle.acceleration)**2
+            # reward_jerk /= max(self.acc_min**2, self.acc_max**2)
+            reward_jerk /= self.acc_min**2
 
         reward_shock = 0
 
