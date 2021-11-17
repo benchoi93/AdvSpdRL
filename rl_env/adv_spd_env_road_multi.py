@@ -669,8 +669,9 @@ class AdvSpdEnvRoadMulti(gym.Env):
         next_des_speed = self.section.get_next_max_speed(self.vehicle.position)
         cur_des_speed = self.section.get_cur_max_speed(self.vehicle.position)
 
-        reward_action_gap = np.abs(next_des_speed - cur_des_speed) / (self.action_space.n * self.unit_speed/2 / 3.6)
-        reward_action_gap = (reward_action_gap) ** 2
+        # reward_action_gap = np.abs(next_des_speed - cur_des_speed) / (self.action_space.n * self.unit_speed/2 / 3.6)
+        # reward_action_gap = (reward_action_gap) ** 2
+        reward_action_gap = 0
 
         # reward_action_gap = self.vehicle.actiongap / (self.acc_max - self.acc_min)
         # reward_finishing = 1000 if self.vehicle.position > 490 else 0

@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import os
 from rl_env.adv_spd_env_road_multi import Vehicle, TrafficSignal, AdvSpdEnvRoadMulti
+from gym import spaces
 
 
 class SectionMaxSpeed(object):
@@ -13,17 +14,23 @@ class SectionMaxSpeed(object):
         self.max_speed = max_speed/3.6
 
         # offset_info = offset_dict
-        temp = [offset_info[x]['offset'] for x in offset_info]
+        temp = [offset_info[x] for x in offset_info]
         running_length = 0
         offset_starts = []
         offset_ends = []
         max_speed = []
+
         for i in range(len(temp)):
-            for offset in temp[i].values():
-                offset_starts.append(np.round(offset['start']+running_length, 3))
-                offset_ends.append(np.round(offset['end']+running_length, 3))
-                max_speed.append(offset['maxSpeed'])
-            running_length += offset['end']
+            offset_starts.append(round(temp[i]['start'], 3))
+            offset_ends.append(round(temp[i]['end'], 3))
+            max_speed.append(temp[i]['maxSpeed'])
+
+        # for i in range(len(temp)):
+        #     for offset in temp[i].values():
+        #         offset_starts.append(np.round(offset['start']+running_length, 3))
+        #         offset_ends.append(np.round(offset['end']+running_length, 3))
+        #         max_speed.append(offset['maxSpeed'])
+        #     running_length += offset['end']
 
         self.offset_starts = offset_starts
         self.offset_ends = offset_ends
@@ -58,7 +65,7 @@ class SectionMaxSpeed(object):
 class AdvSpdEnvRoadMulti_SRC(AdvSpdEnvRoadMulti):
     def __init__(self, src, num_signal=5, num_action_unit=3, dt=0.1, action_dt=5, track_length=1500.0, acc_max=2, acc_min=-3,
                  speed_max=50.0/3.6, speed_min=0, dec_th=-3, stop_th=2, reward_coef=[1, 10, 1, 0.01, 0, 1, 1, 1],
-                 timelimit=7500, unit_length=100, unit_speed=10, stochastic=False, min_location=250, max_location=350):
+                 timelimit=7500, unit_length=100, unit_speed=1, stochastic=False, min_location=250, max_location=350):
 
         assert(acc_max >= 0)
         assert(acc_min <= 0)
@@ -66,9 +73,10 @@ class AdvSpdEnvRoadMulti_SRC(AdvSpdEnvRoadMulti):
 
         super(AdvSpdEnvRoadMulti_SRC, self).__init__(num_signal, num_action_unit, dt, action_dt, track_length, acc_max, acc_min,
                                                      speed_max, speed_min, dec_th, stop_th, reward_coef, timelimit, unit_length, unit_speed, stochastic, min_location, max_location)
+        self.action_space = spaces.Box(low=self.speed_min, high=self.speed_max, shape=[1])
 
         route_src = pd.read_csv(src)
-        route_src = route_src.loc[:83]  # Limit to 2 signals in Sejong
+        # route_src = route_src.loc[:83]  # Limit to 2 signals in Sejong
 
         offset_dict = dict()
         signal_dict = dict()
@@ -76,14 +84,25 @@ class AdvSpdEnvRoadMulti_SRC(AdvSpdEnvRoadMulti):
         # for i in range(route_src.shape[0]):
         running_distance = 0
         signal_idx = 0
+
+        offsetgroup = route_src.groupby("offsetGroup")
+        for key in offsetgroup.groups.keys():
+            offset_i = offsetgroup.get_group(key)
+            offset_length = (offset_i['offsetEnd'] - offset_i['offsetStart']).sum() / 100
+            offset_dict[key] = {
+                "offsetGroup": key,
+                "start": running_distance,
+                "end": running_distance+offset_length,
+                "offsetLength": offset_length,
+                "offsets": [offset_i.iloc[0].to_dict() for i in range(offset_i.shape[0])],
+                "maxSpeed": offset_i['MaxSpeed'].min()
+            }
+
+            running_distance += offset_length
+
         for i in range(len(route_src)):
-            if not route_src.iloc[i]['linkSeq'] in offset_dict.keys():
-                offset_dict[route_src.iloc[i]['linkSeq']] = {"linkID": route_src.iloc[i]['linkID'],
-                                                             "offset": {}}
-            offset_dict[route_src.iloc[i]['linkSeq']]['offset'][route_src.iloc[i]['offsetSeq']] = {"start": route_src.iloc[i]['offsetStart']/100,
-                                                                                                   "end": route_src.iloc[i]['offsetEnd']/100,
-                                                                                                   "maxSpeed": float(route_src.iloc[i]['MaxSpeed'])}
             running_distance += route_src.iloc[i]['offsetEnd']/100-route_src.iloc[i]['offsetStart']/100
+
             if route_src.iloc[i]['existSignal']:
                 signal_dict[signal_idx] = {"location": running_distance,
                                            "signalGreen": int(route_src.iloc[i]['signalGreenPhaseLength']),
@@ -94,6 +113,24 @@ class AdvSpdEnvRoadMulti_SRC(AdvSpdEnvRoadMulti):
                                            "signalName": str(route_src.iloc[i]['SignalName'])
                                            }
                 signal_idx += 1
+        # for i in range(len(route_src)):
+        #     if not route_src.iloc[i]['linkSeq'] in offset_dict.keys():
+        #         offset_dict[route_src.iloc[i]['linkSeq']] = {"linkID": route_src.iloc[i]['linkID'],
+        #                                                      "offset": {}}
+        #     offset_dict[route_src.iloc[i]['linkSeq']]['offset'][route_src.iloc[i]['offsetSeq']] = {"start": route_src.iloc[i]['offsetStart']/100,
+        #                                                                                            "end": route_src.iloc[i]['offsetEnd']/100,
+        #                                                                                            "maxSpeed": float(route_src.iloc[i]['MaxSpeed'])}
+        #     running_distance += route_src.iloc[i]['offsetEnd']/100-route_src.iloc[i]['offsetStart']/100
+        #     if route_src.iloc[i]['existSignal']:
+        #         signal_dict[signal_idx] = {"location": running_distance,
+        #                                    "signalGreen": int(route_src.iloc[i]['signalGreenPhaseLength']),
+        #                                    "signalRed": int(route_src.iloc[i]['siganlRedPhaseLength']),
+        #                                    "signalOffset": int(route_src.iloc[i]['signalOffset']),
+        #                                    "signalGroup": int(route_src.iloc[i]['SignalGroup']),
+        #                                    "signalNumber": int(route_src.iloc[i]['SignalNumber']),
+        #                                    "signalName": str(route_src.iloc[i]['SignalName'])
+        #                                    }
+        #         signal_idx += 1
 
         self.offset_dict = offset_dict
         self.signal_dict = signal_dict
@@ -139,7 +176,8 @@ class AdvSpdEnvRoadMulti_SRC(AdvSpdEnvRoadMulti):
 
     def _take_action(self, action):
         # applied_action = (action + 1) * self.unit_speed / 3.6
-        applied_action = ((action) * self.unit_speed + self.speed_min*3.6)/3.6
+        # applied_action = ((action) * self.unit_speed + self.speed_min*3.6)/3.6
+        applied_action = action
 
         cur_idx, _ = self.section.get_cur_idx(self.vehicle.position)
         # if cur_idx > 0:
@@ -212,8 +250,12 @@ class AdvSpdEnvRoadMulti_SRC(AdvSpdEnvRoadMulti):
                 # self.section.sms_list.append([self.timestep/10, self.section.section_max_speed])
                 self.section.sms_list.append(
                     [self.timestep/10, np.min(np.stack([self.section.section_max_speed, self.section_input.section_max_speed]), 0)])
-                self.vehicle.veh_info[self.timestep][5] = min(self.section.section_max_speed[math.floor(
-                    self.vehicle.position/self.unit_length)], self.section_input.section_max_speed[math.floor(self.vehicle.position/self.unit_length)])
+                self.vehicle.veh_info[self.timestep][5] = min(
+                    self.section.get_cur_max_speed(self.vehicle.position),
+                    self.section_input.get_cur_max_speed(self.vehicle.position)
+                    # self.section.section_max_speed[math.floor(self.vehicle.position/self.unit_length)],
+                    # self.section_input.section_max_speed[math.floor(self.vehicle.position/self.unit_length)]
+                )
             except:
                 # print(self.timestep)
                 break

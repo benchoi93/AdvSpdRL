@@ -55,7 +55,7 @@ else:
 #                              unit_length=25,
 #                              unit_speed=5)
 
-env = AdvSpdEnvRoadMulti_SRC(src="rl_env/data/brt1001_signal_offset.csv",
+env = AdvSpdEnvRoadMulti_SRC(src="rl_env/data/brt1001_signal_offset_Group.csv",
                              reward_coef=[args.coef_vel,
                                           args.coef_shock,
                                           args.coef_jerk,
@@ -70,9 +70,9 @@ env = AdvSpdEnvRoadMulti_SRC(src="rl_env/data/brt1001_signal_offset.csv",
                              action_dt=args.action_dt,
                              stochastic=args.stochastic,
                              speed_max=40.0/3.6,
-                             speed_min=15.0/3.6,
-                             acc_max=1.4,
-                             acc_min=-1.1
+                             speed_min=15.0/3.6
+                             #  acc_max=1.4,
+                             #  acc_min=-1.1
                              )
 
 env = gym.wrappers.TimeLimit(env, max_episode_steps=args.max_episode_steps)
