@@ -195,6 +195,7 @@ class AdvSpdEnvRoadMulti_SRC(AdvSpdEnvRoadMulti):
                 reward[7] = -reward_action_gap
             else:
                 reward[7] = 0
+            cnt += 1
 
             # max_speed = self.section.get_cur_max_speed(self.vehicle.position)
             # reward_norm_velocity1 = np.abs((self.vehicle.velocity) - max_speed)
