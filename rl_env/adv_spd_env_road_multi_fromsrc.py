@@ -73,7 +73,7 @@ class AdvSpdEnvRoadMulti_SRC(AdvSpdEnvRoadMulti):
 
         super(AdvSpdEnvRoadMulti_SRC, self).__init__(num_signal, num_action_unit, dt, action_dt, track_length, acc_max, acc_min,
                                                      speed_max, speed_min, dec_th, stop_th, reward_coef, timelimit, unit_length, unit_speed, stochastic, min_location, max_location)
-        self.action_space = spaces.Box(low=self.speed_min, high=self.speed_max, shape=[1])
+        # self.action_space = spaces.Box(low=self.speed_min, high=self.speed_max, shape=[1])
 
         route_src = pd.read_csv(src)
         # route_src = route_src.loc[:83]  # Limit to 2 signals in Sejong
@@ -99,6 +99,8 @@ class AdvSpdEnvRoadMulti_SRC(AdvSpdEnvRoadMulti):
             }
 
             running_distance += offset_length
+
+        running_distance = 0
 
         for i in range(len(route_src)):
             running_distance += route_src.iloc[i]['offsetEnd']/100-route_src.iloc[i]['offsetStart']/100
@@ -176,8 +178,8 @@ class AdvSpdEnvRoadMulti_SRC(AdvSpdEnvRoadMulti):
 
     def _take_action(self, action):
         # applied_action = (action + 1) * self.unit_speed / 3.6
-        # applied_action = ((action) * self.unit_speed + self.speed_min*3.6)/3.6
-        applied_action = action
+        applied_action = ((action) * self.unit_speed + self.speed_min*3.6)/3.6
+        # applied_action = action
 
         cur_idx, _ = self.section.get_cur_idx(self.vehicle.position)
         # if cur_idx > 0:
@@ -260,7 +262,7 @@ class AdvSpdEnvRoadMulti_SRC(AdvSpdEnvRoadMulti):
                 # print(self.timestep)
                 break
 
-            if self.vehicle.position > self.track_length:
+            if self.vehicle.position > self.track_length-1:
                 break
 
             if self.timestep > self.timelimit:
