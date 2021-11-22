@@ -23,13 +23,13 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--cuda', default='0', type=str)
 parser.add_argument('--model', default='PPO', type=str)
 parser.add_argument('--coef-vel', default=1, type=float, help="add penalty to difference between current speed and speed limit")
-parser.add_argument('--coef-shock', default=1, type=float, help="add penalty to exceeding speed limit")
+parser.add_argument('--coef-shock', default=0, type=float, help="add penalty to exceeding speed limit")
 parser.add_argument('--coef-jerk', default=1, type=float, help="add penalty to large jerk")
 parser.add_argument('--coef-power', default=1, type=float, help="add penalty to large power consumption")
 parser.add_argument('--coef-tt', default=0, type=float, help="add penalty to traveltime")
 parser.add_argument('--coef-signal', default=1, type=float, help="add penalty to traveltime")
 parser.add_argument('--coef-distance', default=0, type=float, help="add penalty to remaining travel distance")
-parser.add_argument('--coef-actiongap', default=1, type=float, help="add penalty to gap between calculated action and applied action")
+parser.add_argument('--coef-actiongap', default=0, type=float, help="add penalty to gap between calculated action and applied action")
 parser.add_argument('--max-episode-steps', default=20000, type=int, help="maximum number of steps in one episode")
 parser.add_argument('--activation', default='relu', type=str, choices=['relu', 'tanh'], help="activation function of policy networks")
 parser.add_argument('--unit-length', default=25, type=int, help="")
@@ -69,7 +69,7 @@ env = AdvSpdEnvRoadMulti_SRC(src="rl_env/data/brt1001_signal_offset_Group.csv",
                              unit_speed=args.unit_speed,
                              action_dt=args.action_dt,
                              stochastic=args.stochastic,
-                             speed_max=40.0/3.6,
+                             speed_max=45.0/3.6,
                              speed_min=15.0/3.6
                              #  acc_max=1.4,
                              #  acc_min=-1.1
@@ -87,7 +87,6 @@ env = Monitor(env, f"./params/{modelname}{int(cuda)}/")
 checkpoint_callback = CheckpointCallback(save_freq=10000, save_path=f"./params/{modelname}{int(cuda)}", name_prefix=f"AdvSpdRL_{modelname}")
 best_callback = SaveOnBestTrainingRewardCallback(check_freq=10000, log_dir=f"./params/{modelname}{int(cuda)}")
 # gif_callback = GIFCallback(env=env, save_freq=100000, save_path=os.path.join('simulate_gif', f'{model}{int(cuda)}'), name_prefix=f"AdvSpdRL_{model}")
-
 
 pickle.dump(env.env, open(f"params/{modelname}{int(cuda)}/env.pkl", 'wb'))
 

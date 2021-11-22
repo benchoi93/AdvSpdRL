@@ -141,7 +141,7 @@ class AdvSpdEnvRoadMulti_SRC(AdvSpdEnvRoadMulti):
 
         self.reset()
 
-    def reset(self, initial_position=0, initial_speed=30/3.6, rand_offset=True, signal_offset=0):
+    def reset(self, initial_position=0, initial_speed=45/3.6, rand_offset=True, signal_offset=0):
         self.vehicle = Vehicle(timelimit=self.timelimit, initial_speed=initial_speed, initial_position=initial_position,)
 
         if rand_offset:
