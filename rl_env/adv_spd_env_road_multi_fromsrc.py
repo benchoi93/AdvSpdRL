@@ -227,8 +227,10 @@ class AdvSpdEnvRoadMulti_SRC(AdvSpdEnvRoadMulti):
             reward[5] += pass_sig_reward
 
             if cnt == 0:
-                next_des_speed = self.section.get_next_max_speed(self.vehicle.position)
-                cur_des_speed = self.section.get_cur_max_speed(self.vehicle.position)
+                next_des_speed = min(self.section.get_next_max_speed(self.vehicle.position),
+                                     self.section_input.get_next_max_speed(self.vehicle.position))
+                cur_des_speed = min(self.section.get_cur_max_speed(self.vehicle.position),
+                                    self.section_input.get_cur_max_speed(self.vehicle.position))
                 reward_action_gap = np.abs(next_des_speed - cur_des_speed)
                 #  / (self.action_space.n * self.unit_speed/2 / 3.6)
                 reward_action_gap = (reward_action_gap) ** 2
