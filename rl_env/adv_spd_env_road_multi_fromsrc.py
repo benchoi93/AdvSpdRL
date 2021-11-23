@@ -141,7 +141,7 @@ class AdvSpdEnvRoadMulti_SRC(AdvSpdEnvRoadMulti):
 
         self.reset()
 
-    def reset(self, initial_position=0, initial_speed=45/3.6, rand_offset=True, signal_offset=0):
+    def reset(self, initial_position=0, initial_speed=45/3.6, rand_offset=True, signal_offset=0, training=True):
         self.vehicle = Vehicle(timelimit=self.timelimit, initial_speed=initial_speed, initial_position=initial_position,)
 
         if rand_offset:
@@ -174,6 +174,9 @@ class AdvSpdEnvRoadMulti_SRC(AdvSpdEnvRoadMulti):
         self.reward_per_unitlen = []
         # self.reward_at_time = np.zeros((int(self.timelimit/self.action_dt/10), 2))
 
+        if training:
+            ob, _, _, _ = self.step(self.action_space.n)
+            return ob
         return self.state
 
     def _take_action(self, action):
