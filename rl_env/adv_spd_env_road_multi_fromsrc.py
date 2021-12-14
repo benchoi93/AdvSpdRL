@@ -110,9 +110,9 @@ class AdvSpdEnvRoadMulti_SRC(AdvSpdEnvRoadMulti):
                                            "signalGreen": int(route_src.iloc[i]['signalGreenPhaseLength']),
                                            "signalRed": int(route_src.iloc[i]['siganlRedPhaseLength']),
                                            "signalOffset": int(route_src.iloc[i]['signalOffset']),
-                                           "signalGroup": int(route_src.iloc[i]['SignalGroup']),
-                                           "signalNumber": int(route_src.iloc[i]['SignalNumber']),
-                                           "signalName": str(route_src.iloc[i]['SignalName'])
+                                           #    "signalGroup": int(route_src.iloc[i]['SignalGroup']),
+                                           #    "signalNumber": int(route_src.iloc[i]['SignalNumber']),
+                                           #    "signalName": str(route_src.iloc[i]['SignalName'])
                                            }
                 signal_idx += 1
         # for i in range(len(route_src)):
