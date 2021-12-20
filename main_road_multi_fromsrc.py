@@ -37,6 +37,7 @@ parser.add_argument('--unit-speed', default=5, type=int, help="")
 parser.add_argument('--action-dt', default=1, type=int, help="")
 parser.add_argument('--stochastic', default=False, type=bool)
 parser.add_argument('--entropy', default=1e-1, type=float, help="")
+parser.add_argument('--data', default="r1_01.csv", type=str, help="")
 args = parser.parse_args()
 
 print(args)
@@ -55,7 +56,7 @@ else:
 #                              unit_length=25,
 #                              unit_speed=5)
 
-env = AdvSpdEnvRoadMulti_SRC(src="rl_env/data/brt1001_signal_offset_Group.csv",
+env = AdvSpdEnvRoadMulti_SRC(src="rl_env/data/" + args.data,
                              reward_coef=[args.coef_vel,
                                           args.coef_shock,
                                           args.coef_jerk,

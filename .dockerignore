@@ -1,3 +1,5 @@
 params/
 log/
 *.zip
+params*
+simulate_gif/
